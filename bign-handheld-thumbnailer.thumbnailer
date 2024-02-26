@@ -1,0 +1,4 @@
+[Thumbnailer Entry]
+TryExec=/usr/bin/bign-handheld-thumbnailer
+Exec=/usr/bin/bign-handheld-thumbnailer -s %s %i %o
+MimeType=application/x-nintendo-ds-rom;application/x-ctr-cia;

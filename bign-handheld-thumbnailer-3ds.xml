@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+    <!-- Copied from Citra at https://github.com/citra-emu/citra/blob/master/dist/citra.xml -->
+    <mime-type type="application/x-ctr-cia">
+        <comment>Nintendo 3DS importable archive</comment>
+        <acronym>CIA</acronym>
+        <expanded-acronym>CTR Importable Archive</expanded-acronym>
+        <glob pattern="*.cia"/>
+    </mime-type>
+</mime-info>
