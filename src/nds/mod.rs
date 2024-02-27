@@ -8,6 +8,8 @@ use nds_banner_structure::*;
 use nds_parsing_errors::*;
 use std::path::Path;
 
+use crate::ParsingErrorByteOutOfRange;
+
 /*
  * Consider the following links for more info about the .nds file structure:
  *
@@ -28,11 +30,11 @@ pub fn extract_nds_data(file_path: &Path) -> Result<NDSBannerDetails, Box<dyn st
     let banner_offset = &content.get(0x068..0x068 + 4);
     let banner_offset = match banner_offset {
         None => {
-            return Err(Box::new(NDSParsingErrorByteOutOfRange {
-                attempted: 0x068 + 4,
-                maximum_size: content.len(),
-                step: String::from("Get banner offset"),
-            }))
+            return Err(Box::new(ParsingErrorByteOutOfRange::new(
+                String::from("Get banner offset"),
+                0x068 + 4,
+                content.len(),
+            )))
         }
         Some(x) => x.to_owned(),
     };
@@ -44,11 +46,11 @@ pub fn extract_nds_data(file_path: &Path) -> Result<NDSBannerDetails, Box<dyn st
     let banner_bytes = &content.get(banner_offset..banner_offset + banner_size);
     let banner_bytes = match banner_bytes {
         None => {
-            return Err(Box::new(NDSParsingErrorByteOutOfRange {
-                attempted: banner_offset + banner_size,
-                maximum_size: content.len(),
-                step: String::from("Get banner data"),
-            }))
+            return Err(Box::new(ParsingErrorByteOutOfRange::new(
+                String::from("Get banner data"),
+                banner_offset + banner_size,
+                content.len(),
+            )))
         }
         Some(x) => x.to_owned(),
     };
@@ -73,7 +75,7 @@ pub fn extract_nds_data(file_path: &Path) -> Result<NDSBannerDetails, Box<dyn st
 fn extract_icon_version(
     icon_version_bytes: &[u8],
 ) -> Result<NDSIconVersion, Box<dyn std::error::Error>> {
-    let icon_version = u16::from_le_bytes(icon_version_bytes[..].try_into()?);
+    let found_icon_version = u16::from_le_bytes(icon_version_bytes[..].try_into()?);
 
     /*
      * The NDS icon versions map to this:
@@ -86,12 +88,14 @@ fn extract_icon_version(
      * Do note that the animated DSi icon is not supported by this thumbnailer
      */
 
-    match icon_version {
+    match found_icon_version {
         0x0001 => Ok(NDSIconVersion::V1),
         0x0002 => Ok(NDSIconVersion::V2),
         0x0003 => Ok(NDSIconVersion::V3),
         0x0103 => Ok(NDSIconVersion::DSi),
-        _ => Err(Box::new(UnknownOrInvalidNDSIconVersion)),
+        _ => Err(Box::new(UnknownOrInvalidNDSIconVersion::new(
+            found_icon_version,
+        ))),
     }
 }
 

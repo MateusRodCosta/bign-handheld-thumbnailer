@@ -1,11 +1,24 @@
 use gdk_pixbuf::Pixbuf;
 
-#[derive(Debug)]
-pub enum N3DSCIAMeta {
+#[derive(Debug, Clone)]
+pub enum N3DSCIAMetaSize {
     MetaNone,
     MetaCVerUSA,
     MetaDummy,
     MetaPresent,
+    GarbageData(u32), // invalid value that should never happen for a valid .cia
+}
+
+impl N3DSCIAMetaSize {
+    pub fn from(meta_size_value: u32) -> N3DSCIAMetaSize {
+        match meta_size_value {
+            0 => N3DSCIAMetaSize::MetaNone,
+            8 => N3DSCIAMetaSize::MetaCVerUSA,
+            0x200 => N3DSCIAMetaSize::MetaDummy,
+            0x3AC0 => N3DSCIAMetaSize::MetaPresent,
+            _ => N3DSCIAMetaSize::GarbageData(meta_size_value),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

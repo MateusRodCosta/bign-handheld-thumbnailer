@@ -1,47 +1,37 @@
 use std::error::Error;
-use std::fmt::{Display, Formatter, Result};
+use std::fmt;
 
 #[derive(Debug, Clone)]
-pub struct UnknownOrInvalidNDSIconVersion;
+pub struct UnknownOrInvalidNDSIconVersion(u16);
 
-impl Error for UnknownOrInvalidNDSIconVersion {}
-
-impl Display for UnknownOrInvalidNDSIconVersion {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "Unknown Or Invalid NDS Rom Version!")
+impl UnknownOrInvalidNDSIconVersion {
+    pub fn new(found_icon_version: u16) -> UnknownOrInvalidNDSIconVersion {
+        UnknownOrInvalidNDSIconVersion(found_icon_version)
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct NDSParsingErrorByteOutOfRange {
-    pub attempted: usize,
-    pub maximum_size: usize,
-    pub step: String,
-}
-
-impl Error for NDSParsingErrorByteOutOfRange {}
-
-impl Display for NDSParsingErrorByteOutOfRange {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+impl fmt::Display for UnknownOrInvalidNDSIconVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             concat!(
-                "Byte out of range when parsing .nds file, please check if it's a valid NDS ROM.\n",
-                "Attempted index: {}, size of byte array: {}\n",
-                "Step: {}"
+                "Unknown Or Invalid NDS icon version found.\n",
+                "Found value: {:#06x}, expected values: 0x0001, 0x0002, 0x0003 or 0x0103"
             ),
-            self.attempted, self.maximum_size, self.step
+            self.0
         )
     }
 }
 
+impl Error for UnknownOrInvalidNDSIconVersion {}
+
 #[derive(Debug, Clone)]
 pub struct UnableToExtractNDSIcon;
 
-impl Error for UnableToExtractNDSIcon {}
-
-impl Display for UnableToExtractNDSIcon {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "Unable to extract NDS icon!")
+impl fmt::Display for UnableToExtractNDSIcon {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Unable to extract .nds icon!")
     }
 }
+
+impl Error for UnableToExtractNDSIcon {}

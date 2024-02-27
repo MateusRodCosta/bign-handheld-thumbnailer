@@ -8,7 +8,7 @@ use gdk_pixbuf::InterpType;
 use generic_errors::*;
 use n3ds::{extract_n3ds_3dsx_data, extract_n3ds_cia_data, extract_n3ds_smdh_data};
 use nds::extract_nds_data;
-use std::path::Path;
+use std::{path::Path, process::ExitCode};
 
 #[derive(Debug, Parser)]
 struct ThumbnailerArgs {
@@ -18,11 +18,21 @@ struct ThumbnailerArgs {
     output_file: std::path::PathBuf,
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> ExitCode {
     let args = ThumbnailerArgs::parse();
 
+    if let Err(e) = bign_handheld_thumbnailer(&args) {
+        eprintln!("bign-handheld-thumbnailer error: {}", e);
+        return ExitCode::FAILURE;
+    };
+
+    ExitCode::SUCCESS
+}
+
+fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), Box<dyn std::error::Error>> {
     let input = Path::new(&args.input_file);
     let output = Path::new(&args.output_file);
+    let size = args.size;
 
     let content_type = utils::content_type_guess(Some(input), None);
     let content_type = content_type.0.to_string();
@@ -52,11 +62,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .get_large_icon()
                 .to_owned()
         }
-        _ => return Err(Box::new(InvalidContentType { content_type })),
+        _ => return Err(Box::new(InvalidContentType::new(content_type))),
     };
 
-    let new_size = args.size;
-    let pixbuf = match pixbuf.scale_simple(new_size, new_size, InterpType::Bilinear) {
+    let pixbuf = match pixbuf.scale_simple(size, size, InterpType::Bilinear) {
         Some(p) => p,
         None => pixbuf.to_owned(),
     };

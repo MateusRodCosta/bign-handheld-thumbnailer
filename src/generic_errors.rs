@@ -1,22 +1,58 @@
 use std::error::Error;
-use std::fmt::{Display, Formatter, Result};
+use std::fmt;
 
 #[derive(Debug, Clone)]
 pub struct InvalidContentType {
-    pub content_type: String,
+    content_type: String,
 }
 
-impl Error for InvalidContentType {}
+impl InvalidContentType {
+    pub fn new(content_type: String) -> InvalidContentType {
+        InvalidContentType { content_type }
+    }
+}
 
-impl Display for InvalidContentType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+impl fmt::Display for InvalidContentType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            concat!(
-                "File is not a valid Nitendo DS .nds or Nintendo 3DS .cia/.smdh/.3dsx file\n",
-                "Found content type: {}",
-            ),
+            "Found {}, which is not a valid Nintendo DS .nds or Nintendo 3DS .cia/.smdh/.3dsx file",
             self.content_type,
         )
     }
 }
+
+impl Error for InvalidContentType {}
+
+#[derive(Debug, Clone)]
+pub struct ParsingErrorByteOutOfRange {
+    pub step: String,
+    pub attempted: usize,
+    pub maximum_size: usize,
+}
+
+impl ParsingErrorByteOutOfRange {
+    pub fn new(step: String, attempted: usize, maximum_size: usize) -> ParsingErrorByteOutOfRange {
+        ParsingErrorByteOutOfRange {
+            step,
+            attempted,
+            maximum_size,
+        }
+    }
+}
+
+impl fmt::Display for ParsingErrorByteOutOfRange {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            concat!(
+                "Parsing failed due to byte out of range, check if it's a valid Nintendo DS (.nds) or 3DS (.cia/.smhd/.3dsx) file.\n",
+                "Failed at step: {}\n",
+                "Attempted index: {}, size of byte array: {}",
+            ),
+            self.step, self.attempted, self.maximum_size
+        )
+    }
+}
+
+impl Error for ParsingErrorByteOutOfRange {}
