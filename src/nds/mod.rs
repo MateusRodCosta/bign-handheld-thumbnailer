@@ -22,7 +22,7 @@ use std::path::Path;
 pub fn extract_nds_data(file_path: &Path) -> Result<NDSBannerDetails, Box<dyn std::error::Error>> {
     let f = File::for_path(file_path);
 
-    let content = f.load_bytes(None::<&Cancellable>)?;
+    let content = f.load_bytes(Cancellable::NONE)?;
     let content = content.0;
 
     let banner_offset = &content.get(0x068..0x068 + 4);

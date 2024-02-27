@@ -7,4 +7,12 @@
         <expanded-acronym>CTR Importable Archive</expanded-acronym>
         <glob pattern="*.cia"/>
     </mime-type>
+
+    <mime-type type="application/x-ctr-smdh">
+        <comment>Nintendo 3DS icon and metadata</comment>
+        <acronym>SMDH</acronym>
+        <expanded-acronym>System Menu Data Header</expanded-acronym>
+        <glob pattern="*.smdh"/>
+        <magic><match value="SMDH" type="string" offset="0"/></magic>
+    </mime-type>
 </mime-info>

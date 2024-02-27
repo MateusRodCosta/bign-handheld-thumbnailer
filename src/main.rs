@@ -5,7 +5,7 @@ mod nds;
 use clap::Parser;
 use gdk_pixbuf::InterpType;
 use generic_errors::*;
-use n3ds::extract_3ds_data;
+use n3ds::{extract_n3ds_cia_data, extract_n3ds_smdh_data};
 use nds::extract_nds_data;
 use std::path::Path;
 
@@ -43,10 +43,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let pixbuf = match &mime_type.to_string()[..] {
         "application/x-nintendo-ds-rom" => extract_nds_data(&input)?.get_icon().to_owned(),
-        "application/x-ctr-cia" => extract_3ds_data(&input)?
+        "application/x-ctr-cia" => extract_n3ds_cia_data(&input)?
             .get_smdh_content()
             .get_large_icon()
             .to_owned(),
+        "application/x-ctr-smdh" => extract_n3ds_smdh_data(&input)?.get_large_icon().to_owned(),
         _ => return Err(Box::new(InvalidMimeType)),
     };
 

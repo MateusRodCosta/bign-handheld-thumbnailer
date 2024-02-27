@@ -24,10 +24,23 @@ use std::path::Path;
  * Do note that the Meta section might or might not be present on .cia files.
 */
 
-pub fn extract_3ds_data(file_path: &Path) -> Result<CIAMetaContent, Box<dyn std::error::Error>> {
+pub fn extract_n3ds_smdh_data(file_path: &Path) -> Result<SMDHContent, Box<dyn std::error::Error>> {
     let f = File::for_path(file_path);
 
-    let content = f.load_bytes(None::<&Cancellable>)?;
+    let content = f.load_bytes(Cancellable::NONE)?;
+    let content = content.0;
+
+    let smdh = extract_smdh(&content)?;
+
+    Ok(smdh)
+}
+
+pub fn extract_n3ds_cia_data(
+    file_path: &Path,
+) -> Result<CIAMetaContent, Box<dyn std::error::Error>> {
+    let f = File::for_path(file_path);
+
+    let content = f.load_bytes(Cancellable::NONE)?;
     let content = content.0;
 
     let meta = fetch_meta_section(&content)?;
@@ -36,7 +49,6 @@ pub fn extract_3ds_data(file_path: &Path) -> Result<CIAMetaContent, Box<dyn std:
 }
 
 fn fetch_meta_section(content: &[u8]) -> Result<CIAMetaContent, Box<dyn std::error::Error>> {
-
     /*
      * The meta section isn't in a fixed place and is located after a bunch of sections whose
      * size can vary, therefore it's needed to at the very last fetch the other sizes and
