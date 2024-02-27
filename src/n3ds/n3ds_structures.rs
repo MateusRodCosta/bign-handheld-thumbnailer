@@ -37,3 +37,18 @@ impl SMDHContent {
         &self.large_icon
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct N3DSXContent {
+    smdh_content: SMDHContent,
+}
+
+impl N3DSXContent {
+    pub fn new(smdh_content: SMDHContent) -> N3DSXContent {
+        N3DSXContent { smdh_content }
+    }
+
+    pub fn get_smdh_content(&self) -> &SMDHContent {
+        &self.smdh_content
+    }
+}

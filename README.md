@@ -7,10 +7,11 @@ This project adheres to the [Freedesktop Thumbnail Managing Standard](https://sp
 ## Supported files and limitations
 
 * Nintendo DS:
-  * .nds roms (DSi animated icon not supported)
+  * .nds roms (DSi animated icons are not supported, standard DS icon is used instead)
 * Nintendo 3DS:
-  * .cia files (only if Meta section is present and contains a SMDH with a valid icon)
+  * .cia files (only if Meta section is present and contains a valid SMDH with a valid large icon)
   * .smdh metadata files
+  * .3dsx homebrew (only if extended header is present and contains a valid SMDH with valid large icon)
   * other file types might be supported in the future
 
 ## How to install

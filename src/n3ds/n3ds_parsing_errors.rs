@@ -50,6 +50,28 @@ impl Display for N3DSParsingErrorSMDHMagicNotFound {
 }
 
 #[derive(Debug, Clone)]
+pub struct N3DSParsingError3DSXMagicNotFound;
+
+impl Error for N3DSParsingError3DSXMagicNotFound {}
+
+impl Display for N3DSParsingError3DSXMagicNotFound {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "3DSX magic not found on 3DSX file.")
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct N3DSParsingError3DSXNoExtendedHeader;
+
+impl Error for N3DSParsingError3DSXNoExtendedHeader {}
+
+impl Display for N3DSParsingError3DSXNoExtendedHeader {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "No extended header on 3DSX file.")
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct UnableToExtractN3DSIcon;
 
 impl Error for UnableToExtractN3DSIcon {}

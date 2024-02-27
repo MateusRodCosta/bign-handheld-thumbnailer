@@ -35,6 +35,17 @@ pub fn extract_n3ds_smdh_data(file_path: &Path) -> Result<SMDHContent, Box<dyn s
     Ok(smdh)
 }
 
+pub fn extract_n3ds_3dsx_data(file_path: &Path) -> Result<N3DSXContent, Box<dyn std::error::Error>> {
+    let f = File::for_path(file_path);
+
+    let content: (gio::glib::Bytes, Option<gio::glib::GString>) = f.load_bytes(Cancellable::NONE)?;
+    let content = content.0;
+
+    let n3dsx = extract_n3dsx(&content)?;
+
+    Ok(n3dsx)
+}
+
 pub fn extract_n3ds_cia_data(
     file_path: &Path,
 ) -> Result<CIAMetaContent, Box<dyn std::error::Error>> {
@@ -182,6 +193,46 @@ fn extract_smdh(smdh_bytes: &[u8]) -> Result<SMDHContent, Box<dyn std::error::Er
     let smdh = SMDHContent::new(large_icon);
 
     Ok(smdh)
+}
+
+fn extract_n3dsx(n3dsx_bytes: &[u8]) -> Result<N3DSXContent, Box<dyn std::error::Error>> {
+    let n3dsx_magic = &n3dsx_bytes[..4];
+    let n3dsx_magic_str = String::from_utf8(n3dsx_magic.to_vec())?;
+
+    if n3dsx_magic_str != "3DSX" {
+        return Err(Box::new(N3DSParsingError3DSXMagicNotFound));
+    }
+
+    let header_size = match n3dsx_bytes.get(0x4..0x4+2) {
+        Some(x) => x,
+        None => return Err(Box::new(N3DSParsingErrorByteOutOfRange{
+            attempted: 0x4+2,
+            maximum_size: n3dsx_bytes.len(),
+            step: String::from("Extract 3DSX header size"),
+        })),
+    };
+    let header_size = u16::from_le_bytes(header_size[..].try_into()?);
+    let header_size = usize::from(header_size);
+
+    if !(header_size > 32) {
+        return Err(Box::new(N3DSParsingError3DSXNoExtendedHeader));
+    }
+
+    let smdh_offset = &n3dsx_bytes[0x20..0x20+4];
+    let smdh_offset = u32::from_le_bytes(smdh_offset[..].try_into()?);
+    let smdh_offset = smdh_offset as usize;
+
+    let smdh_size = &n3dsx_bytes[0x20+4..0x20+4+4];
+    let smdh_size = u32::from_le_bytes(smdh_size[..].try_into()?);
+    let smdh_size = smdh_size as usize;
+
+    let smdh_bytes = &n3dsx_bytes[smdh_offset..smdh_offset+smdh_size];
+
+    let smdh = extract_smdh(smdh_bytes)?;
+
+    let n3dsx_content = N3DSXContent::new(smdh);
+
+    Ok(n3dsx_content)
 }
 
 fn extract_large_icon(large_icon_bytes: &[u8]) -> Result<Pixbuf, Box<dyn std::error::Error>> {

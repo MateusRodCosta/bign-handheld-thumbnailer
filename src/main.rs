@@ -1,11 +1,12 @@
 mod generic_errors;
 mod n3ds;
 mod nds;
+mod utils;
 
 use clap::Parser;
 use gdk_pixbuf::InterpType;
 use generic_errors::*;
-use n3ds::{extract_n3ds_cia_data, extract_n3ds_smdh_data};
+use n3ds::{extract_n3ds_3dsx_data, extract_n3ds_cia_data, extract_n3ds_smdh_data};
 use nds::extract_nds_data;
 use std::path::Path;
 
@@ -23,11 +24,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let input = Path::new(&args.input_file);
     let output = Path::new(&args.output_file);
 
-    let content_type = gio::functions::content_type_guess(Some(input), &[]);
-    let mime_type = match gio::functions::content_type_get_mime_type(&content_type.0) {
-        Some(x) => x,
-        None => return Err(Box::new(InvalidMimeType)),
-    };
+    let content_type = utils::content_type_guess(Some(input), None);
+    let content_type = content_type.0.to_string();
 
     /* There are currently two supported file types:
      * .nds roms, indicated by the application/x-nintendo-ds-rom mime type
@@ -41,14 +39,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // You might want to check https://github.com/citra-emu/citra/blob/master/dist/citra.xml
     // for the Nintendo 3DS-related mime types as defined by the Citra emulator
 
-    let pixbuf = match &mime_type.to_string()[..] {
+    let pixbuf = match &content_type[..] {
         "application/x-nintendo-ds-rom" => extract_nds_data(&input)?.get_icon().to_owned(),
         "application/x-ctr-cia" => extract_n3ds_cia_data(&input)?
             .get_smdh_content()
             .get_large_icon()
             .to_owned(),
         "application/x-ctr-smdh" => extract_n3ds_smdh_data(&input)?.get_large_icon().to_owned(),
-        _ => return Err(Box::new(InvalidMimeType)),
+        "application/x-ctr-3dsx" | "application/x-nintendo-3ds-executable" => {
+            extract_n3ds_3dsx_data(&input)?
+                .get_smdh_content()
+                .get_large_icon()
+                .to_owned()
+        }
+        _ => return Err(Box::new(InvalidContentType { content_type })),
     };
 
     let new_size = args.size;

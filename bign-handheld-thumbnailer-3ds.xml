@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
     <!-- Copied from Citra at https://github.com/citra-emu/citra/blob/master/dist/citra.xml -->
+    <mime-type type="application/x-ctr-3dsx">
+        <comment>Nintendo 3DS homebrew executable</comment>
+        <acronym>3DSX</acronym>
+        <glob pattern="*.3dsx"/>
+        <magic><match value="3DSX" type="string" offset="0"/></magic>
+    </mime-type>
+
     <mime-type type="application/x-ctr-cia">
         <comment>Nintendo 3DS importable archive</comment>
         <acronym>CIA</acronym>
