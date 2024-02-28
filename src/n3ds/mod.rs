@@ -1,6 +1,7 @@
 mod n3ds_parsing_errors;
 mod n3ds_structures;
 
+use super::generic_errors::ParsingErrorByteOutOfRange;
 use gdk_pixbuf::Pixbuf;
 use gio::{prelude::FileExt, Cancellable, File};
 use n3ds_parsing_errors::*;
@@ -8,25 +9,28 @@ use n3ds_structures::*;
 use rgb565::Rgb565;
 use std::path::Path;
 
-use crate::ParsingErrorByteOutOfRange;
-
 /*
- * Currently only .cia files are supported.
+ * Currently .cia, .smhd and .3dsx files are supported.
  *
- * Consider the following links for more info about the CIA and SMDH structure:
+ * Consider the following links for more info about the CIA, SMDH and 3DSX structure:
  *
  * On GBATEK:
  * CIA: https://problemkaputt.de/gbatek.htm#3dsfilestitleinstallationarchivecia
  * SMDH: https://problemkaputt.de/gbatek.htm#3dsfilesvideoiconssmdh
+ * 3DSx: https://problemkaputt.de/gbatek.htm#3dsfilestitlehomebrewexecutables3dsx
  *
  * On 3dbrew:
  * CIA: https://www.3dbrew.org/wiki/CIA
  * SMDH: https://www.3dbrew.org/wiki/SMDH
+ * 3DSX: https://www.3dbrew.org/wiki/3DSX_Format
  *
- * Do note that the Meta section might or might not be present on .cia files.
+ * Do note that the Meta section conatining a SMHD might or might not be present on .cia files.
+ * Do also note that the extended header with a SMHD is ptional for .3dsx
 */
 
-pub fn extract_n3ds_smdh_data(file_path: &Path) -> Result<SMDHContent, Box<dyn std::error::Error>> {
+pub fn extract_n3ds_smdh_content(
+    file_path: &Path,
+) -> Result<SMDHContent, Box<dyn std::error::Error>> {
     let f = File::for_path(file_path);
 
     let content = f.load_bytes(Cancellable::NONE)?;
@@ -37,7 +41,7 @@ pub fn extract_n3ds_smdh_data(file_path: &Path) -> Result<SMDHContent, Box<dyn s
     Ok(smdh)
 }
 
-pub fn extract_n3ds_3dsx_data(
+pub fn extract_n3ds_3dsx_content(
     file_path: &Path,
 ) -> Result<N3DSXContent, Box<dyn std::error::Error>> {
     let f = File::for_path(file_path);
@@ -51,7 +55,7 @@ pub fn extract_n3ds_3dsx_data(
     Ok(n3dsx)
 }
 
-pub fn extract_n3ds_cia_data(
+pub fn extract_n3ds_cia_content(
     file_path: &Path,
 ) -> Result<CIAMetaContent, Box<dyn std::error::Error>> {
     let f = File::for_path(file_path);
@@ -59,12 +63,12 @@ pub fn extract_n3ds_cia_data(
     let content = f.load_bytes(Cancellable::NONE)?;
     let content = content.0;
 
-    let meta = fetch_meta_section(&content)?;
+    let meta = extract_meta_section(&content)?;
 
     Ok(meta)
 }
 
-fn fetch_meta_section(content: &[u8]) -> Result<CIAMetaContent, Box<dyn std::error::Error>> {
+fn extract_meta_section(content: &[u8]) -> Result<CIAMetaContent, Box<dyn std::error::Error>> {
     /*
      * The meta section isn't in a fixed place and is located after a bunch of sections whose
      * size can vary, therefore it's needed to at the very last fetch the other sizes and
@@ -169,7 +173,7 @@ fn fetch_meta_section(content: &[u8]) -> Result<CIAMetaContent, Box<dyn std::err
         None => {
             return Err(Box::new(ParsingErrorByteOutOfRange::new(
                 String::from("Extract SMDH"),
-                0x0400 + 0x36c0,
+                0x0400 + 0x36C0,
                 meta.len(),
             )))
         }
@@ -189,7 +193,7 @@ fn extract_smdh(smdh_bytes: &[u8]) -> Result<SMDHContent, Box<dyn std::error::Er
         return Err(Box::new(N3DSParsingErrorSMDHMagicNotFound));
     }
 
-    let large_icon_bytes = &smdh_bytes[0x24c0..0x24c0 + 0x1200];
+    let large_icon_bytes = &smdh_bytes[0x24C0..0x24C0 + 0x1200];
     let large_icon = extract_large_icon(large_icon_bytes)?;
 
     let smdh = SMDHContent::new(large_icon);
@@ -217,14 +221,16 @@ fn extract_n3dsx(n3dsx_bytes: &[u8]) -> Result<N3DSXContent, Box<dyn std::error:
     };
     let header_size = u16::from_le_bytes(header_size[..].try_into()?);
     if !(header_size > 32) {
-        return Err(Box::new(N3DSParsingError3DSXNoExtendedHeader::new(header_size)));
+        return Err(Box::new(N3DSParsingError3DSXNoExtendedHeader::new(
+            header_size,
+        )));
     }
 
     let smdh_offset = &n3dsx_bytes[0x20..0x20 + 4];
     let smdh_offset = u32::from_le_bytes(smdh_offset[..].try_into()?);
     let smdh_offset = smdh_offset as usize;
 
-    let smdh_size = &n3dsx_bytes[0x20 + 4..0x20 + 4 + 4];
+    let smdh_size = &n3dsx_bytes[0x24..0x24 + 4];
     let smdh_size = u32::from_le_bytes(smdh_size[..].try_into()?);
     let smdh_size = smdh_size as usize;
 

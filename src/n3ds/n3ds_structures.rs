@@ -6,7 +6,7 @@ pub enum N3DSCIAMetaSize {
     MetaCVerUSA,
     MetaDummy,
     MetaPresent,
-    GarbageData(u32), // invalid value that should never happen for a valid .cia
+    InvalidMetaSize(u32), // invalid value that should never happen for a valid .cia
 }
 
 impl N3DSCIAMetaSize {
@@ -16,7 +16,7 @@ impl N3DSCIAMetaSize {
             8 => N3DSCIAMetaSize::MetaCVerUSA,
             0x200 => N3DSCIAMetaSize::MetaDummy,
             0x3AC0 => N3DSCIAMetaSize::MetaPresent,
-            _ => N3DSCIAMetaSize::GarbageData(meta_size_value),
+            _ => N3DSCIAMetaSize::InvalidMetaSize(meta_size_value),
         }
     }
 }

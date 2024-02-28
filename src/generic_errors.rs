@@ -26,9 +26,9 @@ impl Error for InvalidContentType {}
 
 #[derive(Debug, Clone)]
 pub struct ParsingErrorByteOutOfRange {
-    pub step: String,
-    pub attempted: usize,
-    pub maximum_size: usize,
+    step: String,
+    attempted: usize,
+    maximum_size: usize,
 }
 
 impl ParsingErrorByteOutOfRange {
@@ -47,8 +47,7 @@ impl fmt::Display for ParsingErrorByteOutOfRange {
             f,
             concat!(
                 "Parsing failed due to byte out of range, check if it's a valid Nintendo DS (.nds) or 3DS (.cia/.smhd/.3dsx) file.\n",
-                "Failed at step: {}\n",
-                "Attempted index: {}, size of byte array: {}",
+                "Failed at step: {}, Attempted index: {} but size of byte array is {}",
             ),
             self.step, self.attempted, self.maximum_size
         )

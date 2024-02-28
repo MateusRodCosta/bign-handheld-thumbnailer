@@ -6,8 +6,8 @@ mod utils;
 use clap::Parser;
 use gdk_pixbuf::InterpType;
 use generic_errors::*;
-use n3ds::{extract_n3ds_3dsx_data, extract_n3ds_cia_data, extract_n3ds_smdh_data};
-use nds::extract_nds_data;
+use n3ds::{extract_n3ds_3dsx_content, extract_n3ds_cia_content, extract_n3ds_smdh_content};
+use nds::extract_nds_banner;
 use std::{path::Path, process::ExitCode};
 
 #[derive(Debug, Parser)]
@@ -50,14 +50,16 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), Box<dyn std::
     // for the Nintendo 3DS-related mime types as defined by the Citra emulator
 
     let pixbuf = match &content_type[..] {
-        "application/x-nintendo-ds-rom" => extract_nds_data(&input)?.get_icon().to_owned(),
-        "application/x-ctr-cia" => extract_n3ds_cia_data(&input)?
+        "application/x-nintendo-ds-rom" => extract_nds_banner(&input)?.get_icon().to_owned(),
+        "application/x-ctr-cia" => extract_n3ds_cia_content(&input)?
             .get_smdh_content()
             .get_large_icon()
             .to_owned(),
-        "application/x-ctr-smdh" => extract_n3ds_smdh_data(&input)?.get_large_icon().to_owned(),
+        "application/x-ctr-smdh" => extract_n3ds_smdh_content(&input)?
+            .get_large_icon()
+            .to_owned(),
         "application/x-ctr-3dsx" | "application/x-nintendo-3ds-executable" => {
-            extract_n3ds_3dsx_data(&input)?
+            extract_n3ds_3dsx_content(&input)?
                 .get_smdh_content()
                 .get_large_icon()
                 .to_owned()

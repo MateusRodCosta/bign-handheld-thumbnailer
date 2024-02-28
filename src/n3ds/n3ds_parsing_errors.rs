@@ -1,4 +1,4 @@
-use super::N3DSCIAMetaSize;
+use super::n3ds_structures::N3DSCIAMetaSize;
 use std::error::Error;
 use std::fmt;
 
@@ -61,7 +61,11 @@ impl N3DSParsingError3DSXNoExtendedHeader {
 
 impl fmt::Display for N3DSParsingError3DSXNoExtendedHeader {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "No extended header on 3DSX file. Found header size is {}.", self.found_header_size)
+        write!(
+            f,
+            "No extended header on 3DSX file. Found header size is {}.",
+            self.found_header_size
+        )
     }
 }
 

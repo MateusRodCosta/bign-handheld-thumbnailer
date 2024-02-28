@@ -1,14 +1,13 @@
 mod nds_banner_structure;
 mod nds_parsing_errors;
 
+use super::generic_errors::ParsingErrorByteOutOfRange;
 use clap::error::Result;
 use gdk_pixbuf::{Colorspace, Pixbuf};
 use gio::{prelude::FileExt, Cancellable, File};
 use nds_banner_structure::*;
 use nds_parsing_errors::*;
 use std::path::Path;
-
-use crate::ParsingErrorByteOutOfRange;
 
 /*
  * Consider the following links for more info about the .nds file structure:
@@ -21,7 +20,9 @@ use crate::ParsingErrorByteOutOfRange;
  * as the thumbnailer specification doesn't support animations.
 */
 
-pub fn extract_nds_data(file_path: &Path) -> Result<NDSBannerDetails, Box<dyn std::error::Error>> {
+pub fn extract_nds_banner(
+    file_path: &Path,
+) -> Result<NDSBannerDetails, Box<dyn std::error::Error>> {
     let f = File::for_path(file_path);
 
     let content = f.load_bytes(Cancellable::NONE)?;
@@ -137,8 +138,8 @@ fn convert_color(color_bytes: &[u8; 2]) -> Result<(u8, u8, u8), Box<dyn std::err
     let converted_color = u16::from_le_bytes(color_bytes.to_owned());
 
     let r = u8::try_from((converted_color & 0x001F) << 3)?;
-    let g = u8::try_from((converted_color & 0x03e0) >> 2)?;
-    let b = u8::try_from((converted_color & 0x7c00) >> 7)?;
+    let g = u8::try_from((converted_color & 0x03E0) >> 2)?;
+    let b = u8::try_from((converted_color & 0x7C00) >> 7)?;
 
     Ok((r, g, b))
 }
