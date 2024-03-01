@@ -2,13 +2,7 @@ use std::error::Error;
 use std::fmt;
 
 #[derive(Debug, Clone)]
-pub struct UnknownOrInvalidNDSIconVersion(u16);
-
-impl UnknownOrInvalidNDSIconVersion {
-    pub fn new(found_icon_version: u16) -> UnknownOrInvalidNDSIconVersion {
-        UnknownOrInvalidNDSIconVersion(found_icon_version)
-    }
-}
+pub struct UnknownOrInvalidNDSIconVersion(pub u16);
 
 impl fmt::Display for UnknownOrInvalidNDSIconVersion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

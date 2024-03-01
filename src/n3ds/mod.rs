@@ -78,11 +78,11 @@ fn extract_meta_section(content: &[u8]) -> Result<CIAMetaContent, Box<dyn std::e
     let certificate_chain_size = match content.get(0x08..0x08 + 4) {
         Some(c) => c,
         None => {
-            return Err(Box::new(ParsingErrorByteOutOfRange::new(
-                String::from("Get certificate chain size"),
-                0x08 + 4,
-                content.len(),
-            )))
+            return Err(Box::new(ParsingErrorByteOutOfRange {
+                step: String::from("Get certificate chain size"),
+                attempted: 0x08 + 4,
+                maximum_size: content.len(),
+            }))
         }
     };
     let certificate_chain_size = u32::from_le_bytes(certificate_chain_size[..].try_into()?);
@@ -90,11 +90,11 @@ fn extract_meta_section(content: &[u8]) -> Result<CIAMetaContent, Box<dyn std::e
     let ticket_size = match content.get(0x0C..0x0C + 4) {
         Some(c) => c,
         None => {
-            return Err(Box::new(ParsingErrorByteOutOfRange::new(
-                String::from("Get ticket size"),
-                0x0C + 4,
-                content.len(),
-            )))
+            return Err(Box::new(ParsingErrorByteOutOfRange {
+                step: String::from("Get ticket size"),
+                attempted: 0x0C + 4,
+                maximum_size: content.len(),
+            }))
         }
     };
     let ticket_size = u32::from_le_bytes(ticket_size[..].try_into()?);
@@ -102,11 +102,11 @@ fn extract_meta_section(content: &[u8]) -> Result<CIAMetaContent, Box<dyn std::e
     let tmd_size = match content.get(0x10..0x10 + 4) {
         Some(c) => c,
         None => {
-            return Err(Box::new(ParsingErrorByteOutOfRange::new(
-                String::from("Get TMD size"),
-                0x10 + 4,
-                content.len(),
-            )))
+            return Err(Box::new(ParsingErrorByteOutOfRange {
+                step: String::from("Get TMD size"),
+                attempted: 0x10 + 4,
+                maximum_size: content.len(),
+            }))
         }
     };
     let tmd_size = u32::from_le_bytes(tmd_size[..].try_into()?);
@@ -114,11 +114,11 @@ fn extract_meta_section(content: &[u8]) -> Result<CIAMetaContent, Box<dyn std::e
     let meta_size = match content.get(0x14..0x14 + 4) {
         Some(c) => c,
         None => {
-            return Err(Box::new(ParsingErrorByteOutOfRange::new(
-                String::from("Get Meta size"),
-                0x14 + 4,
-                content.len(),
-            )))
+            return Err(Box::new(ParsingErrorByteOutOfRange {
+                step: String::from("Get Meta size"),
+                attempted: 0x14 + 4,
+                maximum_size: content.len(),
+            }))
         }
     };
 
@@ -127,20 +127,20 @@ fn extract_meta_section(content: &[u8]) -> Result<CIAMetaContent, Box<dyn std::e
     let meta_size: u32 = match meta_size {
         N3DSCIAMetaSize::MetaPresent => 0x3AC0,
         _ => {
-            return Err(Box::new(
-                N3DSCIAParsingErrorMetaNotPresentOrInvalidSize::new(meta_size),
-            ))
+            return Err(Box::new(N3DSCIAParsingErrorMetaNotPresentOrInvalidSize {
+                0: meta_size,
+            }))
         }
     };
 
     let content_size = match content.get(0x18..0x18 + 8) {
         Some(c) => c,
         None => {
-            return Err(Box::new(ParsingErrorByteOutOfRange::new(
-                String::from("Get content size"),
-                0x18 + 8,
-                content.len(),
-            )))
+            return Err(Box::new(ParsingErrorByteOutOfRange {
+                step: String::from("Get content size"),
+                attempted: 0x18 + 8,
+                maximum_size: content.len(),
+            }))
         }
     };
     let content_size = u64::from_le_bytes(content_size[..].try_into()?);
@@ -160,22 +160,22 @@ fn extract_meta_section(content: &[u8]) -> Result<CIAMetaContent, Box<dyn std::e
     let meta = match content.get(0x2040 + offset..0x2040 + offset + 0x3AC0) {
         Some(c) => c,
         None => {
-            return Err(Box::new(ParsingErrorByteOutOfRange::new(
-                String::from("Extracting meta section"),
-                0x18 + 8,
-                content.len(),
-            )))
+            return Err(Box::new(ParsingErrorByteOutOfRange {
+                step: String::from("Extracting meta section"),
+                attempted: 0x18 + 8,
+                maximum_size: content.len(),
+            }))
         }
     };
 
     let smdh_bytes = match meta.get(0x0400..0x0400 + 0x36c0) {
         Some(c) => c,
         None => {
-            return Err(Box::new(ParsingErrorByteOutOfRange::new(
-                String::from("Extract SMDH"),
-                0x0400 + 0x36C0,
-                meta.len(),
-            )))
+            return Err(Box::new(ParsingErrorByteOutOfRange {
+                step: String::from("Extract SMDH"),
+                attempted: 0x0400 + 0x36C0,
+                maximum_size: meta.len(),
+            }))
         }
     };
 
@@ -212,18 +212,18 @@ fn extract_n3dsx(n3dsx_bytes: &[u8]) -> Result<N3DSXContent, Box<dyn std::error:
     let header_size = match n3dsx_bytes.get(0x4..0x4 + 2) {
         Some(x) => x,
         None => {
-            return Err(Box::new(ParsingErrorByteOutOfRange::new(
-                String::from("Extract 3DSX header size"),
-                0x4 + 2,
-                n3dsx_bytes.len(),
-            )))
+            return Err(Box::new(ParsingErrorByteOutOfRange {
+                step: String::from("Extract 3DSX header size"),
+                attempted: 0x4 + 2,
+                maximum_size: n3dsx_bytes.len(),
+            }))
         }
     };
     let header_size = u16::from_le_bytes(header_size[..].try_into()?);
     if !(header_size > 32) {
-        return Err(Box::new(N3DSParsingError3DSXNoExtendedHeader::new(
-            header_size,
-        )));
+        return Err(Box::new(N3DSParsingError3DSXNoExtendedHeader {
+            found_header_size: header_size,
+        }));
     }
 
     let smdh_offset = &n3dsx_bytes[0x20..0x20 + 4];

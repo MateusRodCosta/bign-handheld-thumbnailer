@@ -25,7 +25,8 @@ fn main() -> ExitCode {
         Err(e) => {
             eprintln!(
                 concat!("bign-handheld-thumbnailer error: {}\n", "Error: {}"),
-                ErrorParsingThumbnailerArguments::new(args), e
+                ErrorParsingThumbnailerArguments { parsed_args: args },
+                e
             );
             return ExitCode::FAILURE;
         }
@@ -90,7 +91,7 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), Box<dyn std::
                 .get_large_icon()
                 .to_owned()
         }
-        _ => return Err(Box::new(InvalidContentType::new(content_type))),
+        _ => return Err(Box::new(InvalidContentType { content_type })),
     };
 
     let pixbuf = match pixbuf.scale_simple(size, size, InterpType::Bilinear) {

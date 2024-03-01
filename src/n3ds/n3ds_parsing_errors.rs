@@ -3,13 +3,7 @@ use std::error::Error;
 use std::fmt;
 
 #[derive(Debug, Clone)]
-pub struct N3DSCIAParsingErrorMetaNotPresentOrInvalidSize(N3DSCIAMetaSize);
-
-impl N3DSCIAParsingErrorMetaNotPresentOrInvalidSize {
-    pub fn new(cia_meta_size: N3DSCIAMetaSize) -> N3DSCIAParsingErrorMetaNotPresentOrInvalidSize {
-        N3DSCIAParsingErrorMetaNotPresentOrInvalidSize(cia_meta_size)
-    }
-}
+pub struct N3DSCIAParsingErrorMetaNotPresentOrInvalidSize(pub N3DSCIAMetaSize);
 
 impl fmt::Display for N3DSCIAParsingErrorMetaNotPresentOrInvalidSize {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -50,13 +44,7 @@ impl Error for N3DSParsingError3DSXMagicNotFound {}
 
 #[derive(Debug, Clone)]
 pub struct N3DSParsingError3DSXNoExtendedHeader {
-    found_header_size: u16,
-}
-
-impl N3DSParsingError3DSXNoExtendedHeader {
-    pub fn new(found_header_size: u16) -> N3DSParsingError3DSXNoExtendedHeader {
-        N3DSParsingError3DSXNoExtendedHeader { found_header_size }
-    }
+    pub found_header_size: u16,
 }
 
 impl fmt::Display for N3DSParsingError3DSXNoExtendedHeader {

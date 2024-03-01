@@ -1,17 +1,9 @@
 use std::error::Error;
 use std::fmt;
 
-use pico_args::Arguments;
-
 #[derive(Debug, Clone)]
 pub struct ErrorParsingThumbnailerArguments {
-    parsed_args: Arguments,
-}
-
-impl ErrorParsingThumbnailerArguments {
-    pub fn new(parsed_args: Arguments) -> ErrorParsingThumbnailerArguments {
-        ErrorParsingThumbnailerArguments { parsed_args }
-    }
+    pub parsed_args: pico_args::Arguments,
 }
 
 impl fmt::Display for ErrorParsingThumbnailerArguments {
@@ -28,13 +20,7 @@ impl Error for ErrorParsingThumbnailerArguments {}
 
 #[derive(Debug, Clone)]
 pub struct InvalidContentType {
-    content_type: String,
-}
-
-impl InvalidContentType {
-    pub fn new(content_type: String) -> InvalidContentType {
-        InvalidContentType { content_type }
-    }
+    pub content_type: String,
 }
 
 impl fmt::Display for InvalidContentType {
@@ -51,19 +37,9 @@ impl Error for InvalidContentType {}
 
 #[derive(Debug, Clone)]
 pub struct ParsingErrorByteOutOfRange {
-    step: String,
-    attempted: usize,
-    maximum_size: usize,
-}
-
-impl ParsingErrorByteOutOfRange {
-    pub fn new(step: String, attempted: usize, maximum_size: usize) -> ParsingErrorByteOutOfRange {
-        ParsingErrorByteOutOfRange {
-            step,
-            attempted,
-            maximum_size,
-        }
-    }
+    pub step: String,
+    pub attempted: usize,
+    pub maximum_size: usize,
 }
 
 impl fmt::Display for ParsingErrorByteOutOfRange {

@@ -30,11 +30,11 @@ pub fn extract_nds_banner(
     let banner_offset = &content.get(0x068..0x068 + 4);
     let banner_offset = match banner_offset {
         None => {
-            return Err(Box::new(ParsingErrorByteOutOfRange::new(
-                String::from("Get banner offset"),
-                0x068 + 4,
-                content.len(),
-            )))
+            return Err(Box::new(ParsingErrorByteOutOfRange {
+                step: String::from("Get banner offset"),
+                attempted: 0x068 + 4,
+                maximum_size: content.len(),
+            }))
         }
         Some(x) => x.to_owned(),
     };
@@ -46,11 +46,11 @@ pub fn extract_nds_banner(
     let banner_bytes = &content.get(banner_offset..banner_offset + banner_size);
     let banner_bytes = match banner_bytes {
         None => {
-            return Err(Box::new(ParsingErrorByteOutOfRange::new(
-                String::from("Get banner data"),
-                banner_offset + banner_size,
-                content.len(),
-            )))
+            return Err(Box::new(ParsingErrorByteOutOfRange {
+                step: String::from("Get banner data"),
+                attempted: banner_offset + banner_size,
+                maximum_size: content.len(),
+            }))
         }
         Some(x) => x.to_owned(),
     };
@@ -93,9 +93,9 @@ fn extract_icon_version(
         0x0002 => Ok(NDSIconVersion::V2),
         0x0003 => Ok(NDSIconVersion::V3),
         0x0103 => Ok(NDSIconVersion::DSi),
-        _ => Err(Box::new(UnknownOrInvalidNDSIconVersion::new(
-            found_icon_version,
-        ))),
+        _ => Err(Box::new(UnknownOrInvalidNDSIconVersion {
+            0: found_icon_version,
+        })),
     }
 }
 
