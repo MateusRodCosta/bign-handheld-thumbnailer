@@ -2,7 +2,6 @@ mod nds_banner_structure;
 mod nds_parsing_errors;
 
 use super::generic_errors::ParsingErrorByteOutOfRange;
-use clap::error::Result;
 use gdk_pixbuf::{Colorspace, Pixbuf};
 use gio::{prelude::FileExt, Cancellable, File};
 use nds_banner_structure::*;

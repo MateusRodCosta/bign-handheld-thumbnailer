@@ -3,23 +3,33 @@ mod n3ds;
 mod nds;
 mod utils;
 
-use clap::Parser;
 use gdk_pixbuf::InterpType;
 use generic_errors::*;
 use n3ds::{extract_n3ds_3dsx_content, extract_n3ds_cia_content, extract_n3ds_smdh_content};
 use nds::extract_nds_banner;
+use pico_args::Arguments;
 use std::{path::Path, process::ExitCode};
 
-#[derive(Debug, Parser)]
+#[derive(Debug)]
 struct ThumbnailerArgs {
-    #[arg(short = 's')]
     size: i32,
     input_file: std::path::PathBuf,
     output_file: std::path::PathBuf,
 }
 
 fn main() -> ExitCode {
-    let args = ThumbnailerArgs::parse();
+    let args = Arguments::from_env();
+
+    let args = match get_thumbnailer_args(&args) {
+        Ok(a) => a,
+        Err(e) => {
+            eprintln!(
+                concat!("bign-handheld-thumbnailer error: {}\n", "Error: {}"),
+                ErrorParsingThumbnailerArguments::new(args), e
+            );
+            return ExitCode::FAILURE;
+        }
+    };
 
     if let Err(e) = bign_handheld_thumbnailer(&args) {
         eprintln!("bign-handheld-thumbnailer error: {}", e);
@@ -27,6 +37,22 @@ fn main() -> ExitCode {
     };
 
     ExitCode::SUCCESS
+}
+
+fn get_thumbnailer_args(
+    arguments: &Arguments,
+) -> Result<ThumbnailerArgs, Box<dyn std::error::Error>> {
+    let mut args = arguments.clone();
+
+    let size = args.value_from_str("-s")?;
+    let input_file = args.free_from_str()?;
+    let output_file = args.free_from_str()?;
+
+    Ok(ThumbnailerArgs {
+        size,
+        input_file,
+        output_file,
+    })
 }
 
 fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), Box<dyn std::error::Error>> {

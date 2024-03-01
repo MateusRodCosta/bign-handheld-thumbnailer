@@ -1,6 +1,31 @@
 use std::error::Error;
 use std::fmt;
 
+use pico_args::Arguments;
+
+#[derive(Debug, Clone)]
+pub struct ErrorParsingThumbnailerArguments {
+    parsed_args: Arguments,
+}
+
+impl ErrorParsingThumbnailerArguments {
+    pub fn new(parsed_args: Arguments) -> ErrorParsingThumbnailerArguments {
+        ErrorParsingThumbnailerArguments { parsed_args }
+    }
+}
+
+impl fmt::Display for ErrorParsingThumbnailerArguments {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Error parsing thumbnailer arguments. Parsed arguments: Found {:?}",
+            self.parsed_args
+        )
+    }
+}
+
+impl Error for ErrorParsingThumbnailerArguments {}
+
 #[derive(Debug, Clone)]
 pub struct InvalidContentType {
     content_type: String,
