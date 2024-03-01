@@ -56,7 +56,14 @@ pub fn extract_nds_banner(
     };
 
     let icon_version_bytes = &banner_bytes[..2];
-    let icon_version = extract_icon_version(icon_version_bytes)?;
+    let icon_version = u16::from_le_bytes(icon_version_bytes[..].try_into()?);
+    let icon_version = NDSIconVersion::from(icon_version);
+    match icon_version {
+        NDSIconVersion::InvalidVersion(v) => {
+            return Err(Box::new(UnknownOrInvalidNDSIconVersion { 0: v }))
+        }
+        _ => (),
+    }
 
     let logo_bytes = &banner_bytes[0x0020..0x0020 + 0x200];
     let palette_bytes = &banner_bytes[0x0220..0x0220 + 0x20];
@@ -70,33 +77,6 @@ pub fn extract_nds_banner(
     let banner_details = NDSBannerDetails::new(icon_version, pixbuf);
 
     Ok(banner_details)
-}
-
-fn extract_icon_version(
-    icon_version_bytes: &[u8],
-) -> Result<NDSIconVersion, Box<dyn std::error::Error>> {
-    let found_icon_version = u16::from_le_bytes(icon_version_bytes[..].try_into()?);
-
-    /*
-     * The NDS icon versions map to this:
-     *
-     * 0001h = Original
-     * 0002h = With Chinese Title
-     * 0003h = With Chinese+Korean Titles
-     * 0103h = With Chinese+Korean Titles and animated DSi icon
-     *
-     * Do note that the animated DSi icon is not supported by this thumbnailer
-     */
-
-    match found_icon_version {
-        0x0001 => Ok(NDSIconVersion::V1),
-        0x0002 => Ok(NDSIconVersion::V2),
-        0x0003 => Ok(NDSIconVersion::V3),
-        0x0103 => Ok(NDSIconVersion::DSi),
-        _ => Err(Box::new(UnknownOrInvalidNDSIconVersion {
-            0: found_icon_version,
-        })),
-    }
 }
 
 fn extract_palette_colors(

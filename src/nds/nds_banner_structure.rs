@@ -56,4 +56,28 @@ pub enum NDSIconVersion {
     V2,
     V3,
     DSi,
+    InvalidVersion(u16),
+}
+
+/*
+ * The NDS icon versions map to this:
+ *
+ * 0001h = Original
+ * 0002h = With Chinese Title
+ * 0003h = With Chinese+Korean Titles
+ * 0103h = With Chinese+Korean Titles and animated DSi icon
+ *
+ * Do note that the animated DSi icon is not supported by this thumbnailer
+*/
+
+impl NDSIconVersion {
+    pub fn from(icon_version_value: u16) -> NDSIconVersion {
+        match icon_version_value {
+            0x0001 => NDSIconVersion::V1,
+            0x0002 => NDSIconVersion::V2,
+            0x0003 => NDSIconVersion::V3,
+            0x0103 => NDSIconVersion::DSi,
+            _ => NDSIconVersion::InvalidVersion(icon_version_value),
+        }
+    }
 }
