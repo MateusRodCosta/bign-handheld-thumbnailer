@@ -57,13 +57,7 @@ pub fn extract_nds_banner(
 
     let icon_version_bytes = &banner_bytes[..2];
     let icon_version = u16::from_le_bytes(icon_version_bytes[..].try_into()?);
-    let icon_version = NDSIconVersion::from(icon_version);
-    match icon_version {
-        NDSIconVersion::InvalidVersion(v) => {
-            return Err(Box::new(UnknownOrInvalidNDSIconVersion { 0: v }))
-        }
-        _ => (),
-    }
+    let icon_version = NDSIconVersion::try_from(icon_version)?;
 
     let logo_bytes = &banner_bytes[0x0020..0x0020 + 0x200];
     let palette_bytes = &banner_bytes[0x0220..0x0220 + 0x20];
