@@ -1,16 +1,32 @@
-use super::n3ds_structures::N3DSCIAMetaSize;
 use std::error::Error;
 use std::fmt;
 
-#[derive(Debug, Clone)]
-pub struct N3DSCIAParsingErrorMetaNotPresentOrInvalidSize(pub N3DSCIAMetaSize);
+use super::N3DSCIAMetaSize;
 
-impl fmt::Display for N3DSCIAParsingErrorMetaNotPresentOrInvalidSize {
+#[derive(Debug, Clone)]
+pub struct N3DSCIAParsingErrorMetaInvalidSize(pub u32);
+
+impl fmt::Display for N3DSCIAParsingErrorMetaInvalidSize {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "3DS .cia Meta block has a invalid size. Found meta size value: {:?}",
+            self.0,
+        )
+    }
+}
+
+impl Error for N3DSCIAParsingErrorMetaInvalidSize {}
+
+#[derive(Debug, Clone)]
+pub struct N3DSCIAParsingErrorMetaNotExpectedValue(pub N3DSCIAMetaSize);
+
+impl fmt::Display for N3DSCIAParsingErrorMetaNotExpectedValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             concat!(
-                "3DS .cia Meta block is not present or meta size not a expected value.\n",
+                "3DS .cia Meta block is not present or doesn't contain a the expected value.\n",
                 "Found meta size value: {:?}"
             ),
             self.0,
@@ -18,7 +34,7 @@ impl fmt::Display for N3DSCIAParsingErrorMetaNotPresentOrInvalidSize {
     }
 }
 
-impl Error for N3DSCIAParsingErrorMetaNotPresentOrInvalidSize {}
+impl Error for N3DSCIAParsingErrorMetaNotExpectedValue {}
 
 #[derive(Debug, Clone)]
 pub struct N3DSParsingErrorSMDHMagicNotFound;
@@ -43,16 +59,14 @@ impl fmt::Display for N3DSParsingError3DSXMagicNotFound {
 impl Error for N3DSParsingError3DSXMagicNotFound {}
 
 #[derive(Debug, Clone)]
-pub struct N3DSParsingError3DSXNoExtendedHeader {
-    pub found_header_size: u16,
-}
+pub struct N3DSParsingError3DSXNoExtendedHeader(pub u16);
 
 impl fmt::Display for N3DSParsingError3DSXNoExtendedHeader {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "No extended header on 3DSX file. Found header size is {}.",
-            self.found_header_size
+            self.0
         )
     }
 }

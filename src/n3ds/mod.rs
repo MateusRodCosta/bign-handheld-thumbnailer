@@ -123,11 +123,11 @@ fn extract_meta_section(content: &[u8]) -> Result<CIAMetaContent, Box<dyn std::e
     };
 
     let meta_size = u32::from_le_bytes(meta_size[..].try_into()?);
-    let meta_size = N3DSCIAMetaSize::from(meta_size);
+    let meta_size = N3DSCIAMetaSize::try_from(meta_size)?;
     let meta_size: u32 = match meta_size {
         N3DSCIAMetaSize::MetaPresent => 0x3AC0,
         _ => {
-            return Err(Box::new(N3DSCIAParsingErrorMetaNotPresentOrInvalidSize {
+            return Err(Box::new(N3DSCIAParsingErrorMetaNotExpectedValue {
                 0: meta_size,
             }))
         }
@@ -148,7 +148,7 @@ fn extract_meta_section(content: &[u8]) -> Result<CIAMetaContent, Box<dyn std::e
     let certificate_chain_size_with_padding = certificate_chain_size.div_ceil(0x40) * 0x40;
     let ticket_size_with_padding = ticket_size.div_ceil(0x40) * 0x40;
     let tmd_size_with_padding = tmd_size.div_ceil(0x40) * 0x40;
-    let meta_size_with_padding = meta_size.div_ceil(0x40) * 0x40;
+    let _meta_size_with_padding = meta_size.div_ceil(0x40) * 0x40;
     let content_size_with_padding = content_size.div_ceil(0x40) * 0x40;
 
     let content_size_with_padding: u32 = u32::try_from(content_size_with_padding)?;
@@ -222,7 +222,7 @@ fn extract_n3dsx(n3dsx_bytes: &[u8]) -> Result<N3DSXContent, Box<dyn std::error:
     let header_size = u16::from_le_bytes(header_size[..].try_into()?);
     if !(header_size > 32) {
         return Err(Box::new(N3DSParsingError3DSXNoExtendedHeader {
-            found_header_size: header_size,
+            0: header_size,
         }));
     }
 

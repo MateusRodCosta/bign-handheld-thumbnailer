@@ -34,17 +34,20 @@ impl PaletteColor {
 
 #[derive(Debug)]
 pub struct NDSBannerDetails {
-    icon_version: NDSIconVersion,
+    _icon_version: NDSIconVersion,
     icon: Pixbuf,
 }
 
 impl NDSBannerDetails {
     pub fn new(icon_version: NDSIconVersion, icon: Pixbuf) -> NDSBannerDetails {
-        NDSBannerDetails { icon_version, icon }
+        NDSBannerDetails {
+            _icon_version: icon_version,
+            icon,
+        }
     }
 
-    pub fn get_icon_version(&self) -> &NDSIconVersion {
-        &self.icon_version
+    pub fn _get_icon_version(&self) -> &NDSIconVersion {
+        &self._icon_version
     }
 
     pub fn get_icon(&self) -> &Pixbuf {
