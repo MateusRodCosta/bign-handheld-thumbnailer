@@ -2,13 +2,13 @@ pub mod bgr555;
 pub mod rgb565;
 
 use gio::ffi;
-use glib::translate::*;
+use gio::glib::translate::*;
 
 // Workaround to https://github.com/gtk-rs/gtk-rs-core/issues/1257
 pub fn content_type_guess(
     filename: Option<impl AsRef<std::path::Path>>,
     data: Option<&[u8]>,
-) -> (glib::GString, bool) {
+) -> (gio::glib::GString, bool) {
     let data_size = data.map(|d| d.len()).unwrap_or(0);
     unsafe {
         let mut result_uncertain = std::mem::MaybeUninit::uninit();

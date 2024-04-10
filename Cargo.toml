@@ -14,7 +14,6 @@ publish = false
 [dependencies]
 pico-args = "0.5.0"
 gio = "0.19.2"
-glib = "0.19.2"
 gdk-pixbuf = "0.19.2"
 
 [profile.release]
