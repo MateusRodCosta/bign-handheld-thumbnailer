@@ -15,19 +15,19 @@ impl PaletteColor {
         PaletteColor { r, g, b, a }
     }
 
-    pub fn get_r(&self) -> u8 {
+    pub fn r(&self) -> u8 {
         self.r
     }
 
-    pub fn get_g(&self) -> u8 {
+    pub fn g(&self) -> u8 {
         self.g
     }
 
-    pub fn get_b(&self) -> u8 {
+    pub fn b(&self) -> u8 {
         self.b
     }
 
-    pub fn get_a(&self) -> u8 {
+    pub fn a(&self) -> u8 {
         self.a
     }
 }

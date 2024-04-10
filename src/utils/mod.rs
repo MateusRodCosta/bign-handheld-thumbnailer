@@ -1,4 +1,4 @@
-pub mod rgb555;
+pub mod bgr555;
 
 use gio::ffi;
 use glib::translate::*;

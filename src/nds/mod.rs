@@ -7,7 +7,7 @@ use gio::{prelude::FileExt, Cancellable, File};
 use nds_banner_structure::*;
 use nds_parsing_errors::*;
 use std::path::Path;
-use super::utils::rgb555::Rgb555;
+use super::utils::bgr555::Bgr555;
 
 /*
  * Consider the following links for more info about the .nds file structure:
@@ -86,9 +86,9 @@ fn extract_palette_colors(
         .iter()
         .map(|color_bytes| u16::from_le_bytes(color_bytes.to_owned()))
         .collect();
-    let colors_converted: Vec<Rgb555> = colors_converted
+    let colors_converted: Vec<Bgr555> = colors_converted
         .iter()
-        .map(|color| Rgb555::try_from(color.to_owned()))
+        .map(|color| Bgr555::try_from(color.to_owned()))
         .collect::<Result<Vec<_>, _>>()?;
 
     let palette_colors: Vec<PaletteColor> = colors_converted
@@ -132,10 +132,10 @@ fn generate_nds_pixbuf(logo_data: &[u8], palette: &[PaletteColor]) -> Option<Pix
                     pixbuf.put_pixel(
                         x * 2 + 8 * i,
                         y + 8 * j,
-                        lower.get_r(),
-                        lower.get_g(),
-                        lower.get_b(),
-                        lower.get_a(),
+                        lower.r(),
+                        lower.g(),
+                        lower.b(),
+                        lower.a(),
                     );
 
                     let upper_index = usize::from((logo_data[pos] & 0xF0) >> 4);
@@ -143,10 +143,10 @@ fn generate_nds_pixbuf(logo_data: &[u8], palette: &[PaletteColor]) -> Option<Pix
                     pixbuf.put_pixel(
                         x * 2 + 1 + 8 * i,
                         y + 8 * j,
-                        upper.get_r(),
-                        upper.get_g(),
-                        upper.get_b(),
-                        upper.get_a(),
+                        upper.r(),
+                        upper.g(),
+                        upper.b(),
+                        upper.a(),
                     );
 
                     pos += 1;
