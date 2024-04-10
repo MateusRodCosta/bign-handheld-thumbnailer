@@ -7,6 +7,7 @@ use gio::{prelude::FileExt, Cancellable, File};
 use nds_banner_structure::*;
 use nds_parsing_errors::*;
 use std::path::Path;
+use super::utils::rgb555::Rgb555;
 
 /*
  * Consider the following links for more info about the .nds file structure:
@@ -81,9 +82,13 @@ fn extract_palette_colors(
         .map(|chunk| <[u8; 2]>::try_from(chunk))
         .collect::<Result<Vec<_>, _>>()?;
 
-    let colors_converted: Vec<(u8, u8, u8)> = colors_raw
+    let colors_converted: Vec<u16> = colors_raw
         .iter()
-        .map(convert_color)
+        .map(|color_bytes| u16::from_le_bytes(color_bytes.to_owned()))
+        .collect();
+    let colors_converted: Vec<Rgb555> = colors_converted
+        .iter()
+        .map(|color| Rgb555::try_from(color.to_owned()))
         .collect::<Result<Vec<_>, _>>()?;
 
     let palette_colors: Vec<PaletteColor> = colors_converted
@@ -91,30 +96,15 @@ fn extract_palette_colors(
         .enumerate()
         .map(|(i, palette_color)| {
             PaletteColor::new(
-                palette_color.0,
-                palette_color.1,
-                palette_color.2,
+                palette_color.r(),
+                palette_color.g(),
+                palette_color.b(),
                 if i == 0 { 0x00 } else { 0xFF },
             )
         })
         .collect();
 
     Ok(palette_colors)
-}
-
-fn convert_color(color_bytes: &[u8; 2]) -> Result<(u8, u8, u8), Box<dyn std::error::Error>> {
-    /*
-     * The NDS palette uses RGB555 for color encoding but we need RGB888
-     * So, each individual color must be isolated and converted to RGB888
-     */
-
-    let converted_color = u16::from_le_bytes(color_bytes.to_owned());
-
-    let r = u8::try_from((converted_color & 0x001F) << 3)?;
-    let g = u8::try_from((converted_color & 0x03E0) >> 2)?;
-    let b = u8::try_from((converted_color & 0x7C00) >> 7)?;
-
-    Ok((r, g, b))
 }
 
 fn generate_nds_pixbuf(logo_data: &[u8], palette: &[PaletteColor]) -> Option<Pixbuf> {

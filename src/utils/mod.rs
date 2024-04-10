@@ -1,3 +1,5 @@
+pub mod rgb555;
+
 use gio::ffi;
 use glib::translate::*;
 
