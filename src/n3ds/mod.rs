@@ -2,11 +2,11 @@ mod n3ds_parsing_errors;
 mod n3ds_structures;
 
 use super::generic_errors::ParsingErrorByteOutOfRange;
+use super::utils::rgb565::Rgb565;
 use gdk_pixbuf::Pixbuf;
 use gio::{prelude::FileExt, Cancellable, File};
 use n3ds_parsing_errors::*;
 use n3ds_structures::*;
-use rgb565::Rgb565;
 use std::path::Path;
 
 /*
@@ -248,11 +248,15 @@ fn extract_large_icon(large_icon_bytes: &[u8]) -> Result<Pixbuf, Box<dyn std::er
         .chunks_exact(2)
         .map(|chunk| <[u8; 2]>::try_from(chunk))
         .collect::<Result<Vec<_>, _>>()?;
+    let large_icon_colors: Vec<u16> = large_icon_colors
+        .iter()
+        .map(|color_bytes| u16::from_le_bytes(color_bytes.to_owned()))
+        .collect();
 
     let large_icon_data: Vec<Rgb565> = large_icon_colors
         .iter()
-        .map(|color| Rgb565::from_rgb565_le(color.to_owned()))
-        .collect();
+        .map(|color| Rgb565::try_from(color.to_owned()))
+        .collect::<Result<Vec<_>, _>>()?;
 
     let large_icon = match generate_n3ds_pixbuf(&large_icon_data) {
         Some(p) => p,
@@ -289,10 +293,8 @@ fn generate_n3ds_pixbuf(large_icon_data: &[Rgb565]) -> Option<Pixbuf> {
                 let y = tile_order[k] >> 3;
                 let coords = (x + (tile_x * 8), y + (tile_y * 8));
 
-                let rgb = large_icon_data[pos].to_rgb888_components();
-                let (r, g, b) = (rgb[0], rgb[1], rgb[2]);
-
-                pixbuf.put_pixel(coords.0, coords.1, r, g, b, 0xFF);
+                let rgb = &large_icon_data[pos];
+                pixbuf.put_pixel(coords.0, coords.1, rgb.r(), rgb.g(), rgb.b(), 0xFF);
 
                 pos += 1;
             }
