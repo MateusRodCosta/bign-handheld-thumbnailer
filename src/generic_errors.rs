@@ -10,7 +10,7 @@ impl fmt::Display for ErrorParsingThumbnailerArguments {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "Error parsing thumbnailer arguments. Parsed arguments: Found {:?}",
+            "Error parsing thumbnailer arguments. Parsed arguments: {:?}",
             self.parsed_args
         )
     }
@@ -27,7 +27,7 @@ impl fmt::Display for InvalidContentType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "Found {}, which is not a valid Nintendo DS .nds or Nintendo 3DS .cia/.smdh/.3dsx file",
+            "Found {}, which is not a supported Nintendo DS (.nds) or Nintendo 3DS (.cia/.smdh/.3dsx) file",
             self.content_type,
         )
     }
@@ -48,7 +48,7 @@ impl fmt::Display for ParsingErrorByteOutOfRange {
             f,
             concat!(
                 "Parsing failed due to byte out of range, check if it's a valid Nintendo DS (.nds) or 3DS (.cia/.smhd/.3dsx) file.\n",
-                "Failed at step: {}, Attempted index: {} but size of byte array is {}",
+                "Failed at '{}' on index {}, byte array size is {}",
             ),
             self.step, self.attempted, self.maximum_size
         )

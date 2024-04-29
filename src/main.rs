@@ -24,7 +24,7 @@ fn main() -> ExitCode {
         Ok(a) => a,
         Err(e) => {
             eprintln!(
-                concat!("bign-handheld-thumbnailer error: {}\n", "Error: {}"),
+                concat!("bign-handheld-thumbnailer: {}\n", "Error: {}"),
                 ErrorParsingThumbnailerArguments { parsed_args: args },
                 e
             );
@@ -33,7 +33,7 @@ fn main() -> ExitCode {
     };
 
     if let Err(e) = bign_handheld_thumbnailer(&args) {
-        eprintln!("bign-handheld-thumbnailer error: {}", e);
+        eprintln!("bign-handheld-thumbnailer: {}", e);
         return ExitCode::FAILURE;
     };
 

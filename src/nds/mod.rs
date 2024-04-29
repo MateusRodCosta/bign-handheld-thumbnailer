@@ -32,7 +32,7 @@ pub fn extract_nds_banner(
     let banner_offset = match banner_offset {
         None => {
             return Err(Box::new(ParsingErrorByteOutOfRange {
-                step: String::from("Get banner offset"),
+                step: String::from("Banner offset"),
                 attempted: 0x068 + 4,
                 maximum_size: content.len(),
             }))
@@ -48,7 +48,7 @@ pub fn extract_nds_banner(
     let banner_bytes = match banner_bytes {
         None => {
             return Err(Box::new(ParsingErrorByteOutOfRange {
-                step: String::from("Get banner data"),
+                step: String::from("Banner data"),
                 attempted: banner_offset + banner_size,
                 maximum_size: content.len(),
             }))

@@ -8,10 +8,7 @@ impl fmt::Display for UnknownOrInvalidNDSIconVersion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            concat!(
-                "Unknown Or Invalid NDS icon version found.\n",
-                "Found value: {:#06x}, expected values: 0x0001, 0x0002, 0x0003 or 0x0103"
-            ),
+            "Unknown Or Invalid NDS icon version. Found {:#06x}",
             self.0
         )
     }
@@ -24,7 +21,7 @@ pub struct UnableToExtractNDSIcon;
 
 impl fmt::Display for UnableToExtractNDSIcon {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Unable to extract .nds icon!")
+        write!(f, "Unable to extract NDS icon!")
     }
 }
 

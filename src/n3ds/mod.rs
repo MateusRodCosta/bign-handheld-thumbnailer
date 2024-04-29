@@ -79,7 +79,7 @@ fn extract_meta_section(content: &[u8]) -> Result<CIAMetaContent, Box<dyn std::e
         Some(c) => c,
         None => {
             return Err(Box::new(ParsingErrorByteOutOfRange {
-                step: String::from("Get certificate chain size"),
+                step: String::from("Certificate chain size"),
                 attempted: 0x08 + 4,
                 maximum_size: content.len(),
             }))
@@ -91,7 +91,7 @@ fn extract_meta_section(content: &[u8]) -> Result<CIAMetaContent, Box<dyn std::e
         Some(c) => c,
         None => {
             return Err(Box::new(ParsingErrorByteOutOfRange {
-                step: String::from("Get ticket size"),
+                step: String::from("Ticket size"),
                 attempted: 0x0C + 4,
                 maximum_size: content.len(),
             }))
@@ -103,7 +103,7 @@ fn extract_meta_section(content: &[u8]) -> Result<CIAMetaContent, Box<dyn std::e
         Some(c) => c,
         None => {
             return Err(Box::new(ParsingErrorByteOutOfRange {
-                step: String::from("Get TMD size"),
+                step: String::from("TMD size"),
                 attempted: 0x10 + 4,
                 maximum_size: content.len(),
             }))
@@ -115,7 +115,7 @@ fn extract_meta_section(content: &[u8]) -> Result<CIAMetaContent, Box<dyn std::e
         Some(c) => c,
         None => {
             return Err(Box::new(ParsingErrorByteOutOfRange {
-                step: String::from("Get Meta size"),
+                step: String::from("Meta size"),
                 attempted: 0x14 + 4,
                 maximum_size: content.len(),
             }))
@@ -137,7 +137,7 @@ fn extract_meta_section(content: &[u8]) -> Result<CIAMetaContent, Box<dyn std::e
         Some(c) => c,
         None => {
             return Err(Box::new(ParsingErrorByteOutOfRange {
-                step: String::from("Get content size"),
+                step: String::from("Content size"),
                 attempted: 0x18 + 8,
                 maximum_size: content.len(),
             }))
@@ -161,7 +161,7 @@ fn extract_meta_section(content: &[u8]) -> Result<CIAMetaContent, Box<dyn std::e
         Some(c) => c,
         None => {
             return Err(Box::new(ParsingErrorByteOutOfRange {
-                step: String::from("Extracting meta section"),
+                step: String::from("Extract meta section"),
                 attempted: 0x18 + 8,
                 maximum_size: content.len(),
             }))
