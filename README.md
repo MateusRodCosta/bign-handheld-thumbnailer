@@ -9,7 +9,7 @@ This project adheres to the [Freedesktop Thumbnail Managing Standard](https://sp
 * Nintendo DS:
   * NDS roms (.nds extension) - note that DSi animated icons are not supported, the standard DS icon is used instead
 * Nintendo 3DS:
-  * CIA intaller files (.cia extension) - only if Meta section is present and contains a valid SMDH with a valid large icon
+  * CIA installer files (.cia extension) - only if Meta section is present and contains a valid SMDH with a valid large icon
   * SMDH metadata files (.smdh extension) - used to be shipped as a separate file for older homebrew but is usually contained inside the more common 3DS file formats and also on newer homebrew
   * 3DSX homebrew files (.3dsx extension) - only if extended header is present and contains a valid SMDH with valid large icon
   * CXI executable files (.cxi extension) - as long as the file is decrypted and it's possible to extract the icon file from the ExeFS
