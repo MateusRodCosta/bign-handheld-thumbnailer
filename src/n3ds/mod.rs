@@ -8,6 +8,7 @@ use gio::{prelude::FileExt, Cancellable, File};
 use n3ds_parsing_errors::*;
 use n3ds_structures::*;
 use std::path::Path;
+use std::str;
 
 /*
  * Currently .cia, .smhd and .3dsx files are supported.
@@ -153,7 +154,7 @@ fn extract_meta_section(content: &[u8]) -> Result<CIAMetaContent, Box<dyn std::e
 fn extract_smdh(smdh_bytes: &[u8]) -> Result<SMDHContent, Box<dyn std::error::Error>> {
     let mut reader = ByteReader::endian(smdh_bytes, LittleEndian);
     let smdh_magic = reader.read_to_vec(4)?;
-    let smdh_magic_str = String::from_utf8(smdh_magic)?;
+    let smdh_magic_str = str::from_utf8(&smdh_magic[..])?;
     if smdh_magic_str != "SMDH" {
         return Err(Box::new(N3DSParsingErrorSMDHMagicNotFound));
     }
@@ -172,7 +173,7 @@ fn extract_smdh(smdh_bytes: &[u8]) -> Result<SMDHContent, Box<dyn std::error::Er
 fn extract_n3dsx(n3dsx_bytes: &[u8]) -> Result<N3DSXContent, Box<dyn std::error::Error>> {
     let mut reader = ByteReader::endian(n3dsx_bytes, LittleEndian);
     let n3dsx_magic = reader.read_to_vec(4)?;
-    let n3dsx_magic_str = String::from_utf8(n3dsx_magic)?;
+    let n3dsx_magic_str = str::from_utf8(&n3dsx_magic[..])?;
 
     if n3dsx_magic_str != "3DSX" {
         return Err(Box::new(N3DSParsingError3DSXMagicNotFound));
@@ -269,7 +270,7 @@ fn extract_exefs_file_header(
     let mut reader = ByteReader::endian(file_header_bytes, LittleEndian);
 
     let file_name = reader.read_to_vec(0x8)?;
-    let file_name = String::from_utf8(file_name)?;
+    let file_name = str::from_utf8(&file_name[..])?;
     let file_name = file_name.trim_matches(char::from(0)).to_owned();
 
     let file_offset = reader.read_as::<LittleEndian, u32>()?;
@@ -286,7 +287,7 @@ fn extract_cxi(cxi_bytes: &[u8]) -> Result<CXIContent, Box<dyn std::error::Error
     let mut reader = ByteReader::endian(cxi_bytes, LittleEndian);
     reader.skip(0x100)?;
     let cxi_magic = reader.read_to_vec(4)?;
-    let cxi_magic_str = String::from_utf8(cxi_magic)?;
+    let cxi_magic_str = str::from_utf8(&cxi_magic[..])?;
 
     if cxi_magic_str != "NCCH" {
         return Err(Box::new(N3DSParsingErrorCXIMagicNotFound));
@@ -328,7 +329,7 @@ fn extract_cci(cci_bytes: &[u8]) -> Result<CCIContent, Box<dyn std::error::Error
     let mut reader = ByteReader::endian(cci_bytes, LittleEndian);
     reader.skip(0x100)?;
     let cci_magic = reader.read_to_vec(4)?;
-    let cci_magic_str = String::from_utf8(cci_magic)?;
+    let cci_magic_str = std::str::from_utf8(&cci_magic[..])?;
 
     if cci_magic_str != "NCSD" {
         return Err(Box::new(N3DSParsingErrorCCIMagicNotFound));
