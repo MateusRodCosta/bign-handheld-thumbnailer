@@ -1,4 +1,4 @@
-mod n3ds_parsing_errors;
+pub mod n3ds_parsing_errors;
 mod n3ds_structures;
 
 use super::generic_errors::ParsingErrorByteOutOfRange;
@@ -362,6 +362,14 @@ fn extract_cxi(cxi_bytes: &[u8]) -> Result<CXIContent, Box<dyn std::error::Error
         return Err(Box::new(N3DSParsingErrorCXIMagicNotFound));
     }
 
+    let flags = &cxi_bytes[0x188..0x188 + 8];
+    let flags_index_7 = flags[7];
+    let is_no_crypto = (flags_index_7 & 0x4) == 0x4;
+
+    if !is_no_crypto {
+        return Ok(CXIContent::new(false, None));
+    }
+
     let exefs_offset = &cxi_bytes[0x1A0..0x1A0 + 4];
     let exefs_offset = u32::from_le_bytes(exefs_offset[..].try_into()?); // in media units
     let exefs_offset = exefs_offset * 0x200;
@@ -374,7 +382,7 @@ fn extract_cxi(cxi_bytes: &[u8]) -> Result<CXIContent, Box<dyn std::error::Error
 
     let exefs = extract_exefs(exefs_bytes)?;
 
-    let cxi = CXIContent::new(exefs);
+    let cxi = CXIContent::new(true, Some(exefs));
     Ok(cxi)
 }
 

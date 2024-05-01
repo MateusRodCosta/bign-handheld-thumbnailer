@@ -120,3 +120,14 @@ impl fmt::Display for N3DSParsingErrorExeFSIconFileNotFound {
 }
 
 impl Error for N3DSParsingErrorExeFSIconFileNotFound {}
+
+#[derive(Debug, Clone)]
+pub struct N3DSParsingErrorCXIFileEncrypted;
+
+impl fmt::Display for N3DSParsingErrorCXIFileEncrypted {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "CXI file or CXI file internal to a CCI is encrypted, consider using decrypted files instead.")
+    }
+}
+
+impl Error for N3DSParsingErrorCXIFileEncrypted {}

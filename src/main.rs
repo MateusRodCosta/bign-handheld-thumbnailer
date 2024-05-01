@@ -5,6 +5,7 @@ mod utils;
 
 use gdk_pixbuf::InterpType;
 use generic_errors::*;
+use n3ds::n3ds_parsing_errors::N3DSParsingErrorCXIFileEncrypted;
 use n3ds::{
     extract_n3ds_3dsx_content, extract_n3ds_cci_content, extract_n3ds_cia_content,
     extract_n3ds_cxi_content, extract_n3ds_smdh_content,
@@ -94,18 +95,21 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), Box<dyn std::
                 .get_large_icon()
                 .to_owned()
         }
-        "application/x-ctr-cxi" => extract_n3ds_cxi_content(&input)?
-            .get_exefs()
-            .get_icon()
-            .get_large_icon()
-            .to_owned(),
+        "application/x-ctr-cxi" => {
+            let exefs = match extract_n3ds_cxi_content(&input)?.get_exefs() {
+                Some(x) => x,
+                None => return Err(Box::new(N3DSParsingErrorCXIFileEncrypted)),
+            }
+            .to_owned();
+            exefs.get_icon().get_large_icon().to_owned()
+        }
         "application/x-ctr-cci" | "application/x-nintendo-3ds-rom" => {
-            extract_n3ds_cci_content(&input)?
-                .get_cxi()
-                .get_exefs()
-                .get_icon()
-                .get_large_icon()
-                .to_owned()
+            let exefs = match extract_n3ds_cci_content(&input)?.get_cxi().get_exefs() {
+                Some(x) => x,
+                None => return Err(Box::new(N3DSParsingErrorCXIFileEncrypted)),
+            }
+            .to_owned();
+            exefs.get_icon().get_large_icon().to_owned()
         }
         _ => return Err(Box::new(InvalidContentType { content_type })),
     };
