@@ -1,4 +1,4 @@
 [Thumbnailer Entry]
 TryExec=/usr/bin/bign-handheld-thumbnailer
 Exec=/usr/bin/bign-handheld-thumbnailer -s %s %i %o
-MimeType=application/x-nintendo-ds-rom;application/x-ctr-cia;application/x-ctr-3dsx;application/x-nintendo-3ds-executable;application/x-ctr-smdh;
+MimeType=application/x-nintendo-ds-rom;application/x-ctr-cia;application/x-ctr-smdh;application/x-ctr-3dsx;application/x-nintendo-3ds-executable;application/x-ctr-cxi;application/x-ctr-cci;application/x-nintendo-3ds-rom;
