@@ -3,6 +3,7 @@ mod n3ds_structures;
 
 use super::generic_errors::ParsingErrorByteOutOfRange;
 use super::utils::rgb565::Rgb565;
+use bitstream_io::{ByteRead, ByteReader, LittleEndian};
 use gdk_pixbuf::Pixbuf;
 use gio::{prelude::FileExt, Cancellable, File};
 use n3ds_parsing_errors::*;
@@ -293,32 +294,28 @@ fn extract_large_icon(large_icon_bytes: &[u8]) -> Result<Pixbuf, Box<dyn std::er
 }
 
 fn extract_exefs(exefs_bytes: &[u8]) -> Result<ExeFSContent, Box<dyn std::error::Error>> {
-    let exefs_header = match exefs_bytes.get(0x000..0x200) {
-        Some(x) => x,
-        None => {
-            return Err(Box::new(ParsingErrorByteOutOfRange {
-                step: String::from("Extract ExeFS header"),
-                attempted: 0x200,
-                maximum_size: exefs_bytes.len(),
-            }))
-        }
-    };
+    let mut reader = ByteReader::endian(exefs_bytes, LittleEndian);
+    let exefs_header = reader.read_to_vec(0x200)?;
+    let exefs_header = &exefs_header[..];
 
-    let file_headers = &exefs_header[0x00..0xA0];
+    let mut reader = ByteReader::endian(exefs_header, LittleEndian);
+    let file_headers = reader.read_to_vec(0xA0)?;
+    let file_headers = &file_headers[..];
     let file_headers: Vec<Option<ExeFSFileHeader>> = file_headers
         .chunks_exact(0x10)
         .map(|chunk| extract_exefs_file_header(chunk))
         .collect::<Result<Vec<_>, _>>()?;
-
     let file_headers: Vec<ExeFSFileHeader> = file_headers.into_iter().flatten().collect();
 
-    let icon = match file_headers.iter().find(|item| item.file_name() == "icon") {
+    let icon_file = match file_headers.iter().find(|item| item.file_name() == "icon") {
         Some(x) => x,
         None => return Err(Box::new(N3DSParsingErrorExeFSIconFileNotFound)),
     };
 
-    let smdh_bytes = &exefs_bytes[0x200 + (icon.file_offset() as usize)
-        ..0x200 + (icon.file_offset() as usize) + (icon.file_size() as usize)];
+    let mut reader = ByteReader::endian(exefs_bytes, LittleEndian);
+    reader.skip(0x200 + icon_file.file_offset())?;
+    let smdh_bytes = reader.read_to_vec(icon_file.file_size() as usize)?;
+    let smdh_bytes = &smdh_bytes[..];
     let smdh = extract_smdh(smdh_bytes)?;
 
     let exefs_content = ExeFSContent::new(smdh);
@@ -337,15 +334,15 @@ fn extract_exefs_file_header(
         return Ok(None);
     }
 
-    let file_name = &file_header_bytes[0x0..0x8];
+    let mut reader = ByteReader::endian(file_header_bytes, LittleEndian);
+
+    let file_name = reader.read_to_vec(0x8)?;
+    let file_name = &file_name[..];
     let file_name = String::from_utf8(file_name.to_vec())?;
     let file_name = file_name.trim_matches(char::from(0)).to_owned();
 
-    let file_offset = &file_header_bytes[0x8..0x8 + 0x4];
-    let file_offset = u32::from_le_bytes(file_offset[..].try_into()?);
-
-    let file_size = &file_header_bytes[0xC..0xC + 0x4];
-    let file_size = u32::from_le_bytes(file_size[..].try_into()?);
+    let file_offset = reader.read_as::<LittleEndian, u32>()?;
+    let file_size = reader.read_as::<LittleEndian, u32>()?;
 
     Ok(Some(ExeFSFileHeader::new(
         file_name,
@@ -355,14 +352,21 @@ fn extract_exefs_file_header(
 }
 
 fn extract_cxi(cxi_bytes: &[u8]) -> Result<CXIContent, Box<dyn std::error::Error>> {
-    let cxi_magic: &[u8] = &cxi_bytes[0x100..0x100 + 4];
+    let mut reader = ByteReader::endian(cxi_bytes, LittleEndian);
+    reader.skip(0x100)?;
+    let cxi_magic = reader.read_to_vec(4)?;
+    let cxi_magic = &cxi_magic[..];
     let cxi_magic_str = String::from_utf8(cxi_magic.to_vec())?;
 
     if cxi_magic_str != "NCCH" {
         return Err(Box::new(N3DSParsingErrorCXIMagicNotFound));
     }
 
-    let flags = &cxi_bytes[0x188..0x188 + 8];
+    let mut reader = ByteReader::endian(cxi_bytes, LittleEndian);
+    reader.skip(0x188)?;
+
+    let flags = reader.read_to_vec(8)?;
+    let flags = &flags[..];
     let flags_index_7 = flags[7];
     let is_no_crypto = (flags_index_7 & 0x4) == 0x4;
 
@@ -370,15 +374,19 @@ fn extract_cxi(cxi_bytes: &[u8]) -> Result<CXIContent, Box<dyn std::error::Error
         return Ok(CXIContent::new(false, None));
     }
 
-    let exefs_offset = &cxi_bytes[0x1A0..0x1A0 + 4];
-    let exefs_offset = u32::from_le_bytes(exefs_offset[..].try_into()?); // in media units
-    let exefs_offset = exefs_offset * 0x200;
+    let mut reader = ByteReader::endian(cxi_bytes, LittleEndian);
+    reader.skip(0x1A0)?;
 
-    let exefs_size = &cxi_bytes[0x1A4..0x1A4 + 4];
-    let exefs_size = u32::from_le_bytes(exefs_size[..].try_into()?); // in media units
+    let exefs_offset = reader.read_as::<LittleEndian, u32>()?; // in media units
+    let exefs_offset = exefs_offset * 0x200;
+    let exefs_size = reader.read_as::<LittleEndian, u32>()?; // in media units
     let exefs_size = exefs_size * 0x200;
 
-    let exefs_bytes = &cxi_bytes[(exefs_offset as usize)..((exefs_offset + exefs_size) as usize)];
+    let mut reader = ByteReader::endian(cxi_bytes, LittleEndian);
+    reader.skip(exefs_offset)?;
+
+    let exefs_bytes = reader.read_to_vec(exefs_size as usize)?;
+    let exefs_bytes = &exefs_bytes[..];
 
     let exefs = extract_exefs(exefs_bytes)?;
 
@@ -387,14 +395,21 @@ fn extract_cxi(cxi_bytes: &[u8]) -> Result<CXIContent, Box<dyn std::error::Error
 }
 
 fn extract_cci(cci_bytes: &[u8]) -> Result<CCIContent, Box<dyn std::error::Error>> {
-    let cci_magic: &[u8] = &cci_bytes[0x100..0x100 + 4];
+    let mut reader = ByteReader::endian(cci_bytes, LittleEndian);
+    reader.skip(0x100)?;
+    let cci_magic = reader.read_to_vec(4)?;
+    let cci_magic = &cci_magic[..];
     let cci_magic_str = String::from_utf8(cci_magic.to_vec())?;
 
     if cci_magic_str != "NCSD" {
         return Err(Box::new(N3DSParsingErrorCCIMagicNotFound));
     }
 
-    let partition_table = &cci_bytes[0x120..0x120 + 0x40];
+    let mut reader = ByteReader::endian(cci_bytes, LittleEndian);
+    reader.skip(0x120)?;
+
+    let partition_table = reader.read_to_vec(0x40)?;
+    let partition_table= &partition_table[..];
     let partition_table: Vec<CCIPartition> = partition_table
         .chunks_exact(0x8)
         .enumerate()
@@ -410,12 +425,14 @@ fn extract_cci(cci_bytes: &[u8]) -> Result<CCIContent, Box<dyn std::error::Error
         }
     };
 
-    let first_parttion_contents = &cci_bytes[first_partition.offset() as usize
-        ..(first_partition.offset() + first_partition.lenght()) as usize];
+    let mut reader = ByteReader::endian(cci_bytes, LittleEndian);
+    reader.skip(first_partition.offset())?;
+    let first_partition_contents = reader.read_to_vec(first_partition.lenght() as usize)?;
+    let first_partition_contents = &first_partition_contents[..];
 
-    let cxi = extract_cxi(first_parttion_contents)?;
-
+    let cxi = extract_cxi(first_partition_contents)?;
     let cci = CCIContent::new(cxi);
+
     Ok(cci)
 }
 
@@ -425,12 +442,11 @@ fn extract_cci_partition(
 ) -> Result<CCIPartition, Box<dyn std::error::Error>> {
     let index = index as u8;
 
-    let offset = &partition_bytes[0x0..0x4];
-    let offset = u32::from_le_bytes(offset[..].try_into()?); //in media units
-    let offset = offset * 0x200;
+    let mut reader = ByteReader::endian(partition_bytes, LittleEndian);
 
-    let length = &partition_bytes[0x4..0x4 + 0x4];
-    let length = u32::from_le_bytes(length[..].try_into()?); //in media units
+    let offset = reader.read_as::<LittleEndian, u32>()?; //in media units
+    let offset = offset * 0x200;
+    let length = reader.read_as::<LittleEndian, u32>()?; //in media units
     let length = length * 0x200;
 
     let cci_partition = CCIPartition::new(index, offset, length);
