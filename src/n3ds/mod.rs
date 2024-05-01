@@ -312,10 +312,10 @@ fn extract_exefs(exefs_bytes: &[u8]) -> Result<ExeFSContent, Box<dyn std::error:
 
     let file_headers: Vec<ExeFSFileHeader> = file_headers.into_iter().flatten().collect();
 
-    let icon = file_headers
-        .iter()
-        .find(|item| item.file_name() == "icon")
-        .unwrap();
+    let icon = match file_headers.iter().find(|item| item.file_name() == "icon") {
+        Some(x) => x,
+        None => return Err(Box::new(N3DSParsingErrorExeFSIconFileNotFound)),
+    };
 
     let smdh_bytes = &exefs_bytes[0x200 + (icon.file_offset() as usize)
         ..0x200 + (icon.file_offset() as usize) + (icon.file_size() as usize)];
@@ -332,7 +332,8 @@ fn extract_exefs_file_header(
     // Each header is composed of 16 bytes, if the header is empty it will be filled with zeroes
     // Therefore we can read it as a u128 and check if it's results in a zero as a small optimization
     let is_empty = u128::from_ne_bytes(file_header_bytes[..].try_into()?);
-    if is_empty == 0 {
+    let is_empty = is_empty == 0;
+    if is_empty {
         return Ok(None);
     }
 
@@ -392,7 +393,14 @@ fn extract_cci(cci_bytes: &[u8]) -> Result<CCIContent, Box<dyn std::error::Error
         .map(|(i, chunk)| extract_cci_partition(i, chunk))
         .collect::<Result<Vec<_>, _>>()?;
 
-    let first_partition = partition_table.first().unwrap();
+    let first_partition = match partition_table.first() {
+        Some(x) => x,
+        None => {
+            return Err(Box::new(
+                N3DSParsingErrorCCIErrorGettingExecutableContentPartition,
+            ))
+        }
+    };
 
     let first_parttion_contents = &cci_bytes[first_partition.offset() as usize
         ..(first_partition.offset() + first_partition.lenght()) as usize];

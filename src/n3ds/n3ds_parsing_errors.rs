@@ -98,3 +98,25 @@ impl fmt::Display for N3DSParsingErrorCCIMagicNotFound {
 }
 
 impl Error for N3DSParsingErrorCCIMagicNotFound {}
+
+#[derive(Debug, Clone)]
+pub struct N3DSParsingErrorCCIErrorGettingExecutableContentPartition;
+
+impl fmt::Display for N3DSParsingErrorCCIErrorGettingExecutableContentPartition {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Error getting Executable Content (CXI) partition!")
+    }
+}
+
+impl Error for N3DSParsingErrorCCIErrorGettingExecutableContentPartition {}
+
+#[derive(Debug, Clone)]
+pub struct N3DSParsingErrorExeFSIconFileNotFound;
+
+impl fmt::Display for N3DSParsingErrorExeFSIconFileNotFound {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Error finding icon file inside ExeFS!")
+    }
+}
+
+impl Error for N3DSParsingErrorExeFSIconFileNotFound {}
