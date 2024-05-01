@@ -76,3 +76,25 @@ impl fmt::Display for UnableToExtractN3DSIcon {
 }
 
 impl Error for UnableToExtractN3DSIcon {}
+
+#[derive(Debug, Clone)]
+pub struct N3DSParsingErrorCXIMagicNotFound;
+
+impl fmt::Display for N3DSParsingErrorCXIMagicNotFound {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "NCCH magic not found for CXI!")
+    }
+}
+
+impl Error for N3DSParsingErrorCXIMagicNotFound {}
+
+#[derive(Debug, Clone)]
+pub struct N3DSParsingErrorCCIMagicNotFound;
+
+impl fmt::Display for N3DSParsingErrorCCIMagicNotFound {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "NCSD magic not found for CCI!")
+    }
+}
+
+impl Error for N3DSParsingErrorCCIMagicNotFound {}

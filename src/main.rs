@@ -5,7 +5,10 @@ mod utils;
 
 use gdk_pixbuf::InterpType;
 use generic_errors::*;
-use n3ds::{extract_n3ds_3dsx_content, extract_n3ds_cia_content, extract_n3ds_smdh_content};
+use n3ds::{
+    extract_n3ds_3dsx_content, extract_n3ds_cci_content, extract_n3ds_cia_content,
+    extract_n3ds_cxi_content, extract_n3ds_smdh_content,
+};
 use nds::extract_nds_banner;
 use pico_args::Arguments;
 use std::{path::Path, process::ExitCode};
@@ -88,6 +91,19 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), Box<dyn std::
         "application/x-ctr-3dsx" | "application/x-nintendo-3ds-executable" => {
             extract_n3ds_3dsx_content(&input)?
                 .get_smdh_content()
+                .get_large_icon()
+                .to_owned()
+        }
+        "application/x-ctr-cxi" => extract_n3ds_cxi_content(&input)?
+            .get_exefs()
+            .get_icon()
+            .get_large_icon()
+            .to_owned(),
+        "application/x-ctr-cci" | "application/x-nintendo-3ds-rom" => {
+            extract_n3ds_cci_content(&input)?
+                .get_cxi()
+                .get_exefs()
+                .get_icon()
                 .get_large_icon()
                 .to_owned()
         }
