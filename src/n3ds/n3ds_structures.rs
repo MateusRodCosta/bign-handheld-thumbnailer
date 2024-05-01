@@ -115,20 +115,20 @@ impl ExeFSFileHeader {
 
 #[derive(Debug, Clone)]
 pub struct CXIContent {
-    is_decrypted: bool,
+    _is_decrypted: bool,
     exefs: Option<ExeFSContent>,
 }
 
 impl CXIContent {
     pub fn new(is_decrypted: bool, exefs: Option<ExeFSContent>) -> CXIContent {
         CXIContent {
-            is_decrypted,
+            _is_decrypted: is_decrypted,
             exefs,
         }
     }
 
-    pub fn is_decrypted(&self) -> bool {
-        self.is_decrypted
+    pub fn _is_decrypted(&self) -> bool {
+        self._is_decrypted
     }
 
     pub fn get_exefs(&self) -> &Option<ExeFSContent> {

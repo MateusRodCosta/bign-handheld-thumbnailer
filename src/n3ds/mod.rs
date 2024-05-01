@@ -1,7 +1,6 @@
 pub mod n3ds_parsing_errors;
 mod n3ds_structures;
 
-use super::generic_errors::ParsingErrorByteOutOfRange;
 use super::utils::rgb565::Rgb565;
 use bitstream_io::{ByteRead, ByteReader, LittleEndian};
 use gdk_pixbuf::Pixbuf;
@@ -102,54 +101,14 @@ fn extract_meta_section(content: &[u8]) -> Result<CIAMetaContent, Box<dyn std::e
      * take the padding into account
      */
 
-    let certificate_chain_size = match content.get(0x08..0x08 + 4) {
-        Some(c) => c,
-        None => {
-            return Err(Box::new(ParsingErrorByteOutOfRange {
-                step: String::from("Certificate chain size"),
-                attempted: 0x08 + 4,
-                maximum_size: content.len(),
-            }))
-        }
-    };
-    let certificate_chain_size = u32::from_le_bytes(certificate_chain_size[..].try_into()?);
+    let mut reader = ByteReader::endian(content, LittleEndian);
+    reader.skip(0x08)?;
 
-    let ticket_size = match content.get(0x0C..0x0C + 4) {
-        Some(c) => c,
-        None => {
-            return Err(Box::new(ParsingErrorByteOutOfRange {
-                step: String::from("Ticket size"),
-                attempted: 0x0C + 4,
-                maximum_size: content.len(),
-            }))
-        }
-    };
-    let ticket_size = u32::from_le_bytes(ticket_size[..].try_into()?);
+    let certificate_chain_size = reader.read_as::<LittleEndian, u32>()?;
+    let ticket_size = reader.read_as::<LittleEndian, u32>()?;
+    let tmd_size = reader.read_as::<LittleEndian, u32>()?;
+    let meta_size = reader.read_as::<LittleEndian, u32>()?;
 
-    let tmd_size = match content.get(0x10..0x10 + 4) {
-        Some(c) => c,
-        None => {
-            return Err(Box::new(ParsingErrorByteOutOfRange {
-                step: String::from("TMD size"),
-                attempted: 0x10 + 4,
-                maximum_size: content.len(),
-            }))
-        }
-    };
-    let tmd_size = u32::from_le_bytes(tmd_size[..].try_into()?);
-
-    let meta_size = match content.get(0x14..0x14 + 4) {
-        Some(c) => c,
-        None => {
-            return Err(Box::new(ParsingErrorByteOutOfRange {
-                step: String::from("Meta size"),
-                attempted: 0x14 + 4,
-                maximum_size: content.len(),
-            }))
-        }
-    };
-
-    let meta_size = u32::from_le_bytes(meta_size[..].try_into()?);
     let meta_size = N3DSCIAMetaSize::try_from(meta_size)?;
     let meta_size: u32 = match meta_size {
         N3DSCIAMetaSize::MetaPresent => 0x3AC0,
@@ -160,17 +119,7 @@ fn extract_meta_section(content: &[u8]) -> Result<CIAMetaContent, Box<dyn std::e
         }
     };
 
-    let content_size = match content.get(0x18..0x18 + 8) {
-        Some(c) => c,
-        None => {
-            return Err(Box::new(ParsingErrorByteOutOfRange {
-                step: String::from("Content size"),
-                attempted: 0x18 + 8,
-                maximum_size: content.len(),
-            }))
-        }
-    };
-    let content_size = u64::from_le_bytes(content_size[..].try_into()?);
+    let content_size = reader.read_as::<LittleEndian, u64>()?;
 
     let certificate_chain_size_with_padding = certificate_chain_size.div_ceil(0x40) * 0x40;
     let ticket_size_with_padding = ticket_size.div_ceil(0x40) * 0x40;
@@ -178,33 +127,22 @@ fn extract_meta_section(content: &[u8]) -> Result<CIAMetaContent, Box<dyn std::e
     let _meta_size_with_padding = meta_size.div_ceil(0x40) * 0x40;
     let content_size_with_padding = content_size.div_ceil(0x40) * 0x40;
 
-    let content_size_with_padding: u32 = u32::try_from(content_size_with_padding)?;
-    let offset = certificate_chain_size_with_padding
+    let offset: u32 = certificate_chain_size_with_padding
         + ticket_size_with_padding
         + tmd_size_with_padding
-        + content_size_with_padding;
-    let offset = offset as usize;
-    let meta = match content.get(0x2040 + offset..0x2040 + offset + 0x3AC0) {
-        Some(c) => c,
-        None => {
-            return Err(Box::new(ParsingErrorByteOutOfRange {
-                step: String::from("Extract meta section"),
-                attempted: 0x18 + 8,
-                maximum_size: content.len(),
-            }))
-        }
-    };
+        + u32::try_from(content_size_with_padding)?;
 
-    let smdh_bytes = match meta.get(0x0400..0x0400 + 0x36c0) {
-        Some(c) => c,
-        None => {
-            return Err(Box::new(ParsingErrorByteOutOfRange {
-                step: String::from("Extract SMDH"),
-                attempted: 0x0400 + 0x36C0,
-                maximum_size: meta.len(),
-            }))
-        }
-    };
+    let mut reader = ByteReader::endian(content, LittleEndian);
+    reader.skip(0x2040 + offset)?;
+
+    let meta = reader.read_to_vec(meta_size as usize)?;
+    let meta = &meta[..];
+
+    let mut reader = ByteReader::endian(meta, LittleEndian);
+    reader.skip(0x0400)?;
+
+    let smdh_bytes = reader.read_to_vec(0x36C0)?;
+    let smdh_bytes = &smdh_bytes[..];
 
     let smdh_content = extract_smdh(smdh_bytes)?;
     let meta_content = CIAMetaContent::new(smdh_content);
@@ -213,14 +151,17 @@ fn extract_meta_section(content: &[u8]) -> Result<CIAMetaContent, Box<dyn std::e
 }
 
 fn extract_smdh(smdh_bytes: &[u8]) -> Result<SMDHContent, Box<dyn std::error::Error>> {
-    let sdmh_magic = &smdh_bytes[..4];
-    let sdmh_magic_str = String::from_utf8(sdmh_magic.to_vec())?;
-
-    if sdmh_magic_str != "SMDH" {
+    let mut reader = ByteReader::endian(smdh_bytes, LittleEndian);
+    let smdh_magic = reader.read_to_vec(4)?;
+    let smdh_magic_str = String::from_utf8(smdh_magic)?;
+    if smdh_magic_str != "SMDH" {
         return Err(Box::new(N3DSParsingErrorSMDHMagicNotFound));
     }
 
-    let large_icon_bytes = &smdh_bytes[0x24C0..0x24C0 + 0x1200];
+    let mut reader = ByteReader::endian(smdh_bytes, LittleEndian);
+    reader.skip(0x24C0)?;
+    let large_icon_bytes = reader.read_to_vec(0x1200)?;
+    let large_icon_bytes = &large_icon_bytes[..];
     let large_icon = extract_large_icon(large_icon_bytes)?;
 
     let smdh = SMDHContent::new(large_icon);
@@ -229,42 +170,33 @@ fn extract_smdh(smdh_bytes: &[u8]) -> Result<SMDHContent, Box<dyn std::error::Er
 }
 
 fn extract_n3dsx(n3dsx_bytes: &[u8]) -> Result<N3DSXContent, Box<dyn std::error::Error>> {
-    let n3dsx_magic = &n3dsx_bytes[..4];
-    let n3dsx_magic_str = String::from_utf8(n3dsx_magic.to_vec())?;
+    let mut reader = ByteReader::endian(n3dsx_bytes, LittleEndian);
+    let n3dsx_magic = reader.read_to_vec(4)?;
+    let n3dsx_magic_str = String::from_utf8(n3dsx_magic)?;
 
     if n3dsx_magic_str != "3DSX" {
         return Err(Box::new(N3DSParsingError3DSXMagicNotFound));
     }
 
-    let header_size = match n3dsx_bytes.get(0x4..0x4 + 2) {
-        Some(x) => x,
-        None => {
-            return Err(Box::new(ParsingErrorByteOutOfRange {
-                step: String::from("Extract 3DSX header size"),
-                attempted: 0x4 + 2,
-                maximum_size: n3dsx_bytes.len(),
-            }))
-        }
-    };
-    let header_size = u16::from_le_bytes(header_size[..].try_into()?);
+    let header_size = reader.read_as::<LittleEndian, u16>()?;
     if !(header_size > 32) {
         return Err(Box::new(N3DSParsingError3DSXNoExtendedHeader {
             0: header_size,
         }));
     }
 
-    let smdh_offset = &n3dsx_bytes[0x20..0x20 + 4];
-    let smdh_offset = u32::from_le_bytes(smdh_offset[..].try_into()?);
-    let smdh_offset = smdh_offset as usize;
+    let mut reader = ByteReader::endian(n3dsx_bytes, LittleEndian);
+    reader.skip(0x20)?;
 
-    let smdh_size = &n3dsx_bytes[0x24..0x24 + 4];
-    let smdh_size = u32::from_le_bytes(smdh_size[..].try_into()?);
-    let smdh_size = smdh_size as usize;
+    let smdh_offset = reader.read_as::<LittleEndian, u32>()?;
+    let smdh_size = reader.read_as::<LittleEndian, u32>()?;
 
-    let smdh_bytes = &n3dsx_bytes[smdh_offset..smdh_offset + smdh_size];
+    let mut reader = ByteReader::endian(n3dsx_bytes, LittleEndian);
+    reader.skip(smdh_offset)?;
+    let smdh_bytes = reader.read_to_vec(smdh_size as usize)?;
+    let smdh_bytes = &smdh_bytes[..];
 
     let smdh = extract_smdh(smdh_bytes)?;
-
     let n3dsx_content = N3DSXContent::new(smdh);
 
     Ok(n3dsx_content)
@@ -337,8 +269,7 @@ fn extract_exefs_file_header(
     let mut reader = ByteReader::endian(file_header_bytes, LittleEndian);
 
     let file_name = reader.read_to_vec(0x8)?;
-    let file_name = &file_name[..];
-    let file_name = String::from_utf8(file_name.to_vec())?;
+    let file_name = String::from_utf8(file_name)?;
     let file_name = file_name.trim_matches(char::from(0)).to_owned();
 
     let file_offset = reader.read_as::<LittleEndian, u32>()?;
@@ -355,8 +286,7 @@ fn extract_cxi(cxi_bytes: &[u8]) -> Result<CXIContent, Box<dyn std::error::Error
     let mut reader = ByteReader::endian(cxi_bytes, LittleEndian);
     reader.skip(0x100)?;
     let cxi_magic = reader.read_to_vec(4)?;
-    let cxi_magic = &cxi_magic[..];
-    let cxi_magic_str = String::from_utf8(cxi_magic.to_vec())?;
+    let cxi_magic_str = String::from_utf8(cxi_magic)?;
 
     if cxi_magic_str != "NCCH" {
         return Err(Box::new(N3DSParsingErrorCXIMagicNotFound));
@@ -398,8 +328,7 @@ fn extract_cci(cci_bytes: &[u8]) -> Result<CCIContent, Box<dyn std::error::Error
     let mut reader = ByteReader::endian(cci_bytes, LittleEndian);
     reader.skip(0x100)?;
     let cci_magic = reader.read_to_vec(4)?;
-    let cci_magic = &cci_magic[..];
-    let cci_magic_str = String::from_utf8(cci_magic.to_vec())?;
+    let cci_magic_str = String::from_utf8(cci_magic)?;
 
     if cci_magic_str != "NCSD" {
         return Err(Box::new(N3DSParsingErrorCCIMagicNotFound));
@@ -409,7 +338,7 @@ fn extract_cci(cci_bytes: &[u8]) -> Result<CCIContent, Box<dyn std::error::Error
     reader.skip(0x120)?;
 
     let partition_table = reader.read_to_vec(0x40)?;
-    let partition_table= &partition_table[..];
+    let partition_table = &partition_table[..];
     let partition_table: Vec<CCIPartition> = partition_table
         .chunks_exact(0x8)
         .enumerate()

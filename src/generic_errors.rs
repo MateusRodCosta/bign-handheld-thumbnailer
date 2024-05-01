@@ -34,25 +34,3 @@ impl fmt::Display for InvalidContentType {
 }
 
 impl Error for InvalidContentType {}
-
-#[derive(Debug, Clone)]
-pub struct ParsingErrorByteOutOfRange {
-    pub step: String,
-    pub attempted: usize,
-    pub maximum_size: usize,
-}
-
-impl fmt::Display for ParsingErrorByteOutOfRange {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            concat!(
-                "Parsing failed due to byte out of range, check if it's a valid Nintendo DS (.nds) or 3DS (.cia/.smhd/.3dsx) file.\n",
-                "Failed at '{}' on index {}, byte array size is {}",
-            ),
-            self.step, self.attempted, self.maximum_size
-        )
-    }
-}
-
-impl Error for ParsingErrorByteOutOfRange {}
