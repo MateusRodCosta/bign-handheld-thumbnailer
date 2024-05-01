@@ -1,13 +1,13 @@
 mod nds_banner_structure;
 mod nds_parsing_errors;
 
-use super::generic_errors::ParsingErrorByteOutOfRange;
+use super::utils::bgr555::Bgr555;
+use bitstream_io::{ByteRead, ByteReader, LittleEndian};
 use gdk_pixbuf::{Colorspace, Pixbuf};
 use gio::{prelude::FileExt, Cancellable, File};
 use nds_banner_structure::*;
 use nds_parsing_errors::*;
 use std::path::Path;
-use super::utils::bgr555::Bgr555;
 
 /*
  * Consider the following links for more info about the .nds file structure:
@@ -27,41 +27,28 @@ pub fn extract_nds_banner(
 
     let content = f.load_bytes(Cancellable::NONE)?;
     let content = content.0;
+    let content: &[u8] = &content;
 
-    let banner_offset = &content.get(0x068..0x068 + 4);
-    let banner_offset = match banner_offset {
-        None => {
-            return Err(Box::new(ParsingErrorByteOutOfRange {
-                step: String::from("Banner offset"),
-                attempted: 0x068 + 4,
-                maximum_size: content.len(),
-            }))
-        }
-        Some(x) => x.to_owned(),
-    };
-
-    let banner_offset = u32::from_le_bytes(banner_offset[..].try_into()?);
-    let banner_offset = banner_offset as usize;
+    let mut reader = ByteReader::endian(content, LittleEndian);
+    reader.skip(0x068)?;
+    let banner_offset = reader.read_as::<LittleEndian, u32>()?;
     let banner_size = 0xA00;
 
-    let banner_bytes = &content.get(banner_offset..banner_offset + banner_size);
-    let banner_bytes = match banner_bytes {
-        None => {
-            return Err(Box::new(ParsingErrorByteOutOfRange {
-                step: String::from("Banner data"),
-                attempted: banner_offset + banner_size,
-                maximum_size: content.len(),
-            }))
-        }
-        Some(x) => x.to_owned(),
-    };
+    let mut reader = ByteReader::endian(content, LittleEndian);
+    reader.skip(banner_offset)?;
+    let banner_bytes = reader.read_to_vec(banner_size)?;
+    let banner_bytes = &banner_bytes[..];
 
-    let icon_version_bytes = &banner_bytes[..2];
-    let icon_version = u16::from_le_bytes(icon_version_bytes[..].try_into()?);
+    let mut reader = ByteReader::endian(banner_bytes, LittleEndian);
+    let icon_version = reader.read_as::<LittleEndian, u16>()?;
     let icon_version = NDSIconVersion::try_from(icon_version)?;
 
-    let logo_bytes = &banner_bytes[0x0020..0x0020 + 0x200];
-    let palette_bytes = &banner_bytes[0x0220..0x0220 + 0x20];
+    let mut reader = ByteReader::endian(banner_bytes, LittleEndian);
+    reader.skip(0x0020)?;
+    let logo_bytes = reader.read_to_vec(0x200)?;
+    let logo_bytes = &logo_bytes[..];
+    let palette_bytes = reader.read_to_vec(0x20)?;
+    let palette_bytes = &palette_bytes[..];
     let palette = extract_palette_colors(&palette_bytes)?;
 
     let pixbuf = match generate_nds_pixbuf(&logo_bytes, &palette) {

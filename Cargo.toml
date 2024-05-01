@@ -15,6 +15,7 @@ publish = false
 pico-args = "0.5.0"
 gio = "0.19.3"
 gdk-pixbuf = "0.19.2"
+bitstream-io = "2.2.0"
 
 [profile.release]
 strip = true
