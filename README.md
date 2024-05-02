@@ -17,6 +17,14 @@ This project adheres to the [Freedesktop Thumbnail Managing Standard](https://sp
 
 ## How to install
 
+### From COPR (for Fedora)
+
+For users running Fedora 39, 40 or Rawhide (in either Atomic or non-Atomic variants), bign-handheld-thumbnailer has been packaged as a RPM.
+
+The RPMs can be downloaded from the [bign-handheld-thumbnailer COPR](https://copr.fedorainfracloud.org/coprs/mateusrodcosta/bign-handheld-thumbnailer/). For more info on how to install, refer to the COPR description.
+
+### Manual
+
 There are three pieces to get the thumbnailer running: a compiled `bign-handheld-thumbnailer` binary, the `bign-handheld-thumbnailer.thumbnailer` file and the needed mime type definitions from `bign-handheld-thumbnailer-3ds.xml`.
 
 Due to nautilus using a sandbox to run thumbnailers it's needed to install the binary in a place where the sandbox can access it, such as `/usr/bin`.
