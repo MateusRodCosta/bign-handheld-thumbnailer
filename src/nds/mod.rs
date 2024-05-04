@@ -2,12 +2,10 @@ mod nds_banner_structure;
 mod nds_parsing_errors;
 
 use super::utils::bgr555::Bgr555;
-use bitstream_io::{ByteRead, ByteReader, LittleEndian};
 use gdk_pixbuf::{Colorspace, Pixbuf};
-use gio::{prelude::FileExt, Cancellable, File};
 use nds_banner_structure::*;
 use nds_parsing_errors::*;
-use std::path::Path;
+use std::io::{Read, Seek, SeekFrom};
 
 /*
  * Consider the following links for more info about the .nds file structure:
@@ -20,40 +18,29 @@ use std::path::Path;
  * as the thumbnailer specification doesn't support animations.
 */
 
-pub fn extract_nds_banner(
-    file_path: &Path,
+pub fn extract_nds_banner<T: Read + Seek>(
+    f: &mut T,
 ) -> Result<NDSBannerDetails, Box<dyn std::error::Error>> {
-    let f = File::for_path(file_path);
+    f.seek(SeekFrom::Start(0x068))?;
 
-    let content = f.load_bytes(Cancellable::NONE)?;
-    let content = content.0;
-    let content: &[u8] = &content;
+    let mut banner_offset = [0u8; 4];
+    f.read_exact(&mut banner_offset)?;
+    let banner_offset = u32::from_le_bytes(banner_offset);
 
-    let mut reader = ByteReader::endian(content, LittleEndian);
-    reader.skip(0x068)?;
-    let banner_offset = reader.read_as::<LittleEndian, u32>()?;
-    let banner_size = 0xA00;
+    f.seek(SeekFrom::Start(banner_offset as u64))?;
+    const BANNER_SIZE: usize = 0x240;
+    let mut banner_bytes = [0u8; BANNER_SIZE];
+    f.read_exact(&mut banner_bytes)?;
 
-    let mut reader = ByteReader::endian(content, LittleEndian);
-    reader.skip(banner_offset)?;
-    let banner_bytes = reader.read_to_vec(banner_size)?;
-    let banner_bytes = &banner_bytes[..];
-
-    let mut reader = ByteReader::endian(banner_bytes, LittleEndian);
-    let icon_version = reader.read_as::<LittleEndian, u16>()?;
+    let icon_version = u16::from_le_bytes(banner_bytes[..2].try_into().unwrap());
     let icon_version = NDSIconVersion::try_from(icon_version)?;
 
-    let mut reader = ByteReader::endian(banner_bytes, LittleEndian);
-    reader.skip(0x0020)?;
-    let logo_bytes = reader.read_to_vec(0x200)?;
-    let logo_bytes = &logo_bytes[..];
-    let palette_bytes = reader.read_to_vec(0x20)?;
-    let palette_bytes = &palette_bytes[..];
-    let palette = extract_palette_colors(&palette_bytes)?;
+    let logo_bytes: &[u8; 0x200] = &banner_bytes[0x020..0x220].try_into().unwrap();
+    let palette_bytes: &[u8; 0x20] = &banner_bytes[0x220..0x240].try_into().unwrap();
+    let palette = extract_palette_colors(palette_bytes);
 
-    let pixbuf = match generate_nds_pixbuf(&logo_bytes, &palette) {
-        Some(p) => p,
-        None => return Err(Box::new(UnableToExtractNDSIcon)),
+    let Some(pixbuf) = generate_nds_pixbuf(logo_bytes, &palette) else {
+        return Err(Box::new(UnableToExtractNDSIcon));
     };
 
     let banner_details = NDSBannerDetails::new(icon_version, pixbuf);
@@ -61,40 +48,35 @@ pub fn extract_nds_banner(
     Ok(banner_details)
 }
 
-fn extract_palette_colors(
-    palette_raw: &[u8],
-) -> Result<Vec<PaletteColor>, Box<dyn std::error::Error>> {
-    let colors_raw: Vec<[u8; 2]> = palette_raw
+fn extract_palette_colors(palette_raw: &[u8; 0x20]) -> Vec<PaletteColor> {
+    // this unwrap will never fail: there's even length input.
+    let colors_555 = palette_raw
         .chunks_exact(2)
-        .map(|chunk| <[u8; 2]>::try_from(chunk))
-        .collect::<Result<Vec<_>, _>>()?;
+        .map(|chunk| u16::from_le_bytes(chunk.try_into().unwrap()));
 
-    let colors_converted: Vec<u16> = colors_raw
-        .iter()
-        .map(|color_bytes| u16::from_le_bytes(color_bytes.to_owned()))
-        .collect();
-    let colors_converted: Vec<Bgr555> = colors_converted
-        .iter()
-        .map(|color| Bgr555::try_from(color.to_owned()))
-        .collect::<Result<Vec<_>, _>>()?;
+    // this unwrap will never fail:
+    let colors_converted =
+        colors_555.map(|color| Bgr555::try_from(color).unwrap());
 
-    let palette_colors: Vec<PaletteColor> = colors_converted
-        .iter()
-        .enumerate()
-        .map(|(i, palette_color)| {
+    let mut palette_colors: Vec<PaletteColor> = colors_converted
+        .map(|palette_color| {
             PaletteColor::new(
                 palette_color.r(),
                 palette_color.g(),
                 palette_color.b(),
-                if i == 0 { 0x00 } else { 0xFF },
+                0xFF,
             )
         })
         .collect();
+    palette_colors[0] = PaletteColor {
+        a: 0x00,
+        ..palette_colors[0]
+    };
 
-    Ok(palette_colors)
+    palette_colors
 }
 
-fn generate_nds_pixbuf(logo_data: &[u8], palette: &[PaletteColor]) -> Option<Pixbuf> {
+fn generate_nds_pixbuf(logo_data: &[u8; 0x200], palette: &[PaletteColor]) -> Option<Pixbuf> {
     let pixbuf = Pixbuf::new(Colorspace::Rgb, true, 8, 32, 32)?;
 
     /*
@@ -119,10 +101,10 @@ fn generate_nds_pixbuf(logo_data: &[u8], palette: &[PaletteColor]) -> Option<Pix
                     pixbuf.put_pixel(
                         x * 2 + 8 * i,
                         y + 8 * j,
-                        lower.r(),
-                        lower.g(),
-                        lower.b(),
-                        lower.a(),
+                        lower.r,
+                        lower.g,
+                        lower.b,
+                        lower.a,
                     );
 
                     let upper_index = usize::from((logo_data[pos] & 0xF0) >> 4);
@@ -130,10 +112,10 @@ fn generate_nds_pixbuf(logo_data: &[u8], palette: &[PaletteColor]) -> Option<Pix
                     pixbuf.put_pixel(
                         x * 2 + 1 + 8 * i,
                         y + 8 * j,
-                        upper.r(),
-                        upper.g(),
-                        upper.b(),
-                        upper.a(),
+                        upper.r,
+                        upper.g,
+                        upper.b,
+                        upper.a,
                     );
 
                     pos += 1;

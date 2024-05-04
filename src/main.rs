@@ -78,7 +78,10 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), Box<dyn std::
     // for the Nintendo 3DS-related mime types as defined by the Citra emulator
 
     let pixbuf = match &content_type[..] {
-        "application/x-nintendo-ds-rom" => extract_nds_banner(&input)?.get_icon().to_owned(),
+        "application/x-nintendo-ds-rom" => {
+	    let mut input = File::open(input)?;
+            extract_nds_banner(&mut input)?.get_icon().to_owned()
+        }
         "application/x-ctr-cia" => {
             let mut file = File::open(&args.input_file)?;
             SMDHIcon::from_cia(&mut file)?.get_large_icon()
