@@ -79,11 +79,10 @@ impl TryFrom<&[u8; 0x1200]> for SMDHIcon {
             .map(|color| Rgb565::try_from(color))
             .collect::<Result<Vec<_>, _>>()?;
 
-        let icon = match SMDHIcon::generate_n3ds_pixbuf(&large_icon_data) {
-            Some(large_icon) => SMDHIcon { large_icon },
-            None => return Err(Box::new(UnableToExtractN3DSIcon)),
+        let Some(icon) = SMDHIcon::generate_n3ds_pixbuf(&large_icon_data) else {
+            return Err(Box::new(UnableToExtractN3DSIcon));
         };
-        Ok(icon)
+        Ok(SMDHIcon { large_icon: icon })
     }
 }
 
@@ -303,13 +302,10 @@ impl CCI {
             .map(|_| CCIPartition::from_data(file_data))
             .collect::<Result<Vec<_>, _>>()?;
 
-        let first_partition = match partition_table.first() {
-            Some(x) => x,
-            None => {
-                return Err(Box::new(
-                    N3DSParsingErrorCCIErrorGettingExecutableContentPartition,
-                ))
-            }
+        let Some(first_partition) = partition_table.first() else {
+            return Err(Box::new(
+                N3DSParsingErrorCCIErrorGettingExecutableContentPartition,
+            ));
         };
 
         file_data.seek(SeekFrom::Start(first_partition.offset().into()))?;
@@ -434,9 +430,8 @@ impl ExeFS {
             .flatten()
             .collect();
 
-        let icon_file = match file_headers.iter().find(|item| item.file_name() == "icon") {
-            Some(x) => x,
-            None => return Err(Box::new(N3DSParsingErrorExeFSIconFileNotFound)),
+        let Some(icon_file) = file_headers.iter().find(|item| item.file_name() == "icon") else {
+            return Err(Box::new(N3DSParsingErrorExeFSIconFileNotFound));
         };
 
         file_data.seek(SeekFrom::Current(

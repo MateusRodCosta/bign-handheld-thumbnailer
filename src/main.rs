@@ -101,17 +101,15 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), Box<dyn std::
         }
         "application/x-ctr-cxi" => {
             let mut file = File::open(&args.input_file)?;
-            let exefs = match CXI::from_data(&mut file)?.get_exefs() {
-                Some(x) => x,
-                None => return Err(Box::new(N3DSParsingErrorCXIFileEncrypted)),
+            let Some(exefs) = CXI::from_data(&mut file)?.get_exefs() else {
+                return Err(Box::new(N3DSParsingErrorCXIFileEncrypted));
             };
             exefs.get_icon_file().get_icon().get_large_icon()
         }
         "application/x-ctr-cci" | "application/x-nintendo-3ds-rom" => {
             let mut file = File::open(&args.input_file)?;
-            let exefs = match CCI::from_data(&mut file)?.get_cxi().get_exefs() {
-                Some(x) => x,
-                None => return Err(Box::new(N3DSParsingErrorCXIFileEncrypted)),
+            let Some(exefs) =  CCI::from_data(&mut file)?.get_cxi().get_exefs() else {
+               return Err(Box::new(N3DSParsingErrorCXIFileEncrypted));
             };
             exefs.get_icon_file().get_icon().get_large_icon()
         }
