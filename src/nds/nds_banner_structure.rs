@@ -1,6 +1,6 @@
 use gdk_pixbuf::Pixbuf;
 
-use super::UnknownOrInvalidNDSIconVersion;
+use super::NDSParsingError;
 
 #[derive(Debug, Clone)]
 pub struct PaletteColor {
@@ -57,7 +57,7 @@ pub enum NDSIconVersion {
 }
 
 impl TryFrom<u16> for NDSIconVersion {
-    type Error = UnknownOrInvalidNDSIconVersion;
+    type Error = NDSParsingError;
 
     fn try_from(value: u16) -> Result<Self, Self::Error> {
         match value {
@@ -65,7 +65,7 @@ impl TryFrom<u16> for NDSIconVersion {
             0x0002 => Ok(NDSIconVersion::V2),
             0x0003 => Ok(NDSIconVersion::V3),
             0x0103 => Ok(NDSIconVersion::DSi),
-            _ => Err(Self::Error { 0: value }),
+            _ => Err(Self::Error::UnknownOrInvalidNDSIconVersion { 0: value }),
         }
     }
 }

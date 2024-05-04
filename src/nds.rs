@@ -1,10 +1,10 @@
 mod nds_banner_structure;
 mod nds_parsing_errors;
 
+use self::nds_parsing_errors::NDSParsingError;
 use super::utils::bgr555::Bgr555;
 use gdk_pixbuf::{Colorspace, Pixbuf};
 use nds_banner_structure::*;
-use nds_parsing_errors::*;
 use std::io::{Read, Seek, SeekFrom};
 
 /*
@@ -18,9 +18,7 @@ use std::io::{Read, Seek, SeekFrom};
  * as the thumbnailer specification doesn't support animations.
 */
 
-pub fn extract_nds_banner<T: Read + Seek>(
-    f: &mut T,
-) -> Result<NDSBannerDetails, Box<dyn std::error::Error>> {
+pub fn extract_nds_banner<T: Read + Seek>(f: &mut T) -> Result<NDSBannerDetails, NDSParsingError> {
     f.seek(SeekFrom::Start(0x068))?;
 
     let mut banner_offset = [0u8; 4];
@@ -40,7 +38,7 @@ pub fn extract_nds_banner<T: Read + Seek>(
     let palette = extract_palette_colors(palette_bytes);
 
     let Some(pixbuf) = generate_nds_pixbuf(logo_bytes, &palette) else {
-        return Err(Box::new(UnableToExtractNDSIcon));
+        return Err(NDSParsingError::UnableToExtractNDSIcon);
     };
 
     let banner_details = NDSBannerDetails::new(icon_version, pixbuf);
@@ -55,8 +53,7 @@ fn extract_palette_colors(palette_raw: &[u8; 0x20]) -> Vec<PaletteColor> {
         .map(|chunk| u16::from_le_bytes(chunk.try_into().unwrap()));
 
     // this unwrap will never fail:
-    let colors_converted =
-        colors_555.map(|color| Bgr555::try_from(color).unwrap());
+    let colors_converted = colors_555.map(|color| Bgr555::try_from(color).unwrap());
 
     let mut palette_colors: Vec<PaletteColor> = colors_converted
         .map(|palette_color| {
@@ -98,14 +95,7 @@ fn generate_nds_pixbuf(logo_data: &[u8; 0x200], palette: &[PaletteColor]) -> Opt
                 for x in 0..4 {
                     let lower_index = usize::from(logo_data[pos] & 0x0F);
                     let lower = &palette[lower_index];
-                    pixbuf.put_pixel(
-                        x * 2 + 8 * i,
-                        y + 8 * j,
-                        lower.r,
-                        lower.g,
-                        lower.b,
-                        lower.a,
-                    );
+                    pixbuf.put_pixel(x * 2 + 8 * i, y + 8 * j, lower.r, lower.g, lower.b, lower.a);
 
                     let upper_index = usize::from((logo_data[pos] & 0xF0) >> 4);
                     let upper = &palette[upper_index];
