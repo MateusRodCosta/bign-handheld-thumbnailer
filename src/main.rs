@@ -12,6 +12,7 @@ use n3ds::{
 };
 use nds::extract_nds_banner;
 use pico_args::Arguments;
+use std::fs::File;
 use std::{path::Path, process::ExitCode};
 
 #[derive(Debug)]
@@ -81,7 +82,10 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), Box<dyn std::
     // for the Nintendo 3DS-related mime types as defined by the Citra emulator
 
     let pixbuf = match &content_type[..] {
-        "application/x-nintendo-ds-rom" => extract_nds_banner(&input)?.get_icon().to_owned(),
+        "application/x-nintendo-ds-rom" => {
+	    let mut input = File::open(input)?;
+            extract_nds_banner(&mut input)?.get_icon().to_owned()
+        }
         "application/x-ctr-cia" => extract_n3ds_cia_content(&input)?
             .get_smdh_content()
             .get_large_icon()
