@@ -37,7 +37,7 @@ pub fn extract_nds_banner<T: Read + Seek>(
 
     let logo_bytes: &[u8; 0x200] = &banner_bytes[0x020..0x220].try_into().unwrap();
     let palette_bytes: &[u8; 0x20] = &banner_bytes[0x220..0x240].try_into().unwrap();
-    let palette = extract_palette_colors(palette_bytes)?;
+    let palette = extract_palette_colors(palette_bytes);
 
     let Some(pixbuf) = generate_nds_pixbuf(logo_bytes, &palette) else {
         return Err(Box::new(UnableToExtractNDSIcon));
@@ -48,40 +48,35 @@ pub fn extract_nds_banner<T: Read + Seek>(
     Ok(banner_details)
 }
 
-fn extract_palette_colors(
-    palette_raw: &[u8; 0x20],
-) -> Result<Vec<PaletteColor>, Box<dyn std::error::Error>> {
-    let colors_raw: Vec<[u8; 2]> = palette_raw
+fn extract_palette_colors(palette_raw: &[u8; 0x20]) -> Vec<PaletteColor> {
+    // this unwrap will never fail: there's even length input.
+    let colors_555 = palette_raw
         .chunks_exact(2)
-        .map(|chunk| <[u8; 2]>::try_from(chunk))
-        .collect::<Result<Vec<_>, _>>()?;
+        .map(|chunk| u16::from_le_bytes(chunk.try_into().unwrap()));
 
-    let colors_converted: Vec<u16> = colors_raw
-        .iter()
-        .map(|color_bytes| u16::from_le_bytes(color_bytes.to_owned()))
-        .collect();
-    let colors_converted: Vec<Bgr555> = colors_converted
-        .iter()
-        .map(|color| Bgr555::try_from(color.to_owned()))
-        .collect::<Result<Vec<_>, _>>()?;
+    // this unwrap will never fail:
+    let colors_converted =
+        colors_555.map(|color| Bgr555::try_from(color).unwrap());
 
-    let palette_colors: Vec<PaletteColor> = colors_converted
-        .iter()
-        .enumerate()
-        .map(|(i, palette_color)| {
+    let mut palette_colors: Vec<PaletteColor> = colors_converted
+        .map(|palette_color| {
             PaletteColor::new(
                 palette_color.r(),
                 palette_color.g(),
                 palette_color.b(),
-                if i == 0 { 0x00 } else { 0xFF },
+                0xFF,
             )
         })
         .collect();
+    palette_colors[0] = PaletteColor {
+        a: 0x00,
+        ..palette_colors[0]
+    };
 
-    Ok(palette_colors)
+    palette_colors
 }
 
-fn generate_nds_pixbuf(logo_data: &[u8], palette: &[PaletteColor]) -> Option<Pixbuf> {
+fn generate_nds_pixbuf(logo_data: &[u8; 0x200], palette: &[PaletteColor]) -> Option<Pixbuf> {
     let pixbuf = Pixbuf::new(Colorspace::Rgb, true, 8, 32, 32)?;
 
     /*
@@ -106,10 +101,10 @@ fn generate_nds_pixbuf(logo_data: &[u8], palette: &[PaletteColor]) -> Option<Pix
                     pixbuf.put_pixel(
                         x * 2 + 8 * i,
                         y + 8 * j,
-                        lower.r(),
-                        lower.g(),
-                        lower.b(),
-                        lower.a(),
+                        lower.r,
+                        lower.g,
+                        lower.b,
+                        lower.a,
                     );
 
                     let upper_index = usize::from((logo_data[pos] & 0xF0) >> 4);
@@ -117,10 +112,10 @@ fn generate_nds_pixbuf(logo_data: &[u8], palette: &[PaletteColor]) -> Option<Pix
                     pixbuf.put_pixel(
                         x * 2 + 1 + 8 * i,
                         y + 8 * j,
-                        upper.r(),
-                        upper.g(),
-                        upper.b(),
-                        upper.a(),
+                        upper.r,
+                        upper.g,
+                        upper.b,
+                        upper.a,
                     );
 
                     pos += 1;
