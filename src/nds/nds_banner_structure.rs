@@ -2,7 +2,7 @@ use gdk_pixbuf::Pixbuf;
 
 use super::UnknownOrInvalidNDSIconVersion;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PaletteColor {
     pub r: u8,
     pub g: u8,
@@ -14,25 +14,9 @@ impl PaletteColor {
     pub fn new(r: u8, g: u8, b: u8, a: u8) -> PaletteColor {
         PaletteColor { r, g, b, a }
     }
-
-    pub fn r(&self) -> u8 {
-        self.r
-    }
-
-    pub fn g(&self) -> u8 {
-        self.g
-    }
-
-    pub fn b(&self) -> u8 {
-        self.b
-    }
-
-    pub fn a(&self) -> u8 {
-        self.a
-    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NDSBannerDetails {
     _icon_version: NDSIconVersion,
     icon: Pixbuf,
@@ -46,12 +30,12 @@ impl NDSBannerDetails {
         }
     }
 
-    pub fn _get_icon_version(&self) -> &NDSIconVersion {
-        &self._icon_version
+    pub fn _get_icon_version(&self) -> NDSIconVersion {
+        self._icon_version.clone()
     }
 
-    pub fn get_icon(&self) -> &Pixbuf {
-        &self.icon
+    pub fn get_icon(&self) -> Pixbuf {
+        self.icon.clone()
     }
 }
 
@@ -64,7 +48,7 @@ impl NDSBannerDetails {
 ///
 /// Do note that the animated DSi icon is not supported by this thumbnailer
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum NDSIconVersion {
     V1,
     V2,
