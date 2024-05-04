@@ -15,7 +15,9 @@ pub enum N3DSParsingError {
     #[error(transparent)]
     CXIParsingError(#[from] CXIParsingError),
     #[error(transparent)]
-    UnableToExtractN3DSIcon(#[from] Box<dyn std::error::Error>),
+    IOError(#[from] std::io::Error),
+    #[error(transparent)]
+    OtherError(#[from] Box<dyn std::error::Error>),
 }
 
 #[derive(Error, Debug)]
