@@ -77,30 +77,17 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), Box<dyn std::
     // You might want to check https://github.com/citra-emu/citra/blob/master/dist/citra.xml
     // for the Nintendo 3DS-related mime types as defined by the Citra emulator
 
+    let mut input = File::open(input)?;
     let pixbuf = match &content_type[..] {
-        "application/x-nintendo-ds-rom" => {
-	    let mut input = File::open(input)?;
-            extract_nds_banner(&mut input)?.get_icon().to_owned()
-        }
-        "application/x-ctr-cia" => {
-            let mut file = File::open(&args.input_file)?;
-            SMDHIcon::from_cia(&mut file)?.get_large_icon()
-        }
-        "application/x-ctr-smdh" => {
-            let mut file = File::open(&args.input_file)?;
-            SMDHIcon::from_smdh(&mut file)?.get_large_icon()
-        }
+        "application/x-nintendo-ds-rom" => extract_nds_banner(&mut input)?.get_icon().to_owned(),
+        "application/x-ctr-cia" => SMDHIcon::from_cia(&mut input)?.get_large_icon(),
+        "application/x-ctr-smdh" => SMDHIcon::from_smdh(&mut input)?.get_large_icon(),
         "application/x-ctr-3dsx" | "application/x-nintendo-3ds-executable" => {
-            let mut file = File::open(&args.input_file)?;
-            SMDHIcon::from_n3dsx(&mut file)?.get_large_icon()
+            SMDHIcon::from_n3dsx(&mut input)?.get_large_icon()
         }
-        "application/x-ctr-cxi" => {
-            let mut file = File::open(&args.input_file)?;
-            SMDHIcon::from_cxi(&mut file)?.get_large_icon()
-        }
+        "application/x-ctr-cxi" => SMDHIcon::from_cxi(&mut input)?.get_large_icon(),
         "application/x-ctr-cci" | "application/x-nintendo-3ds-rom" => {
-            let mut file = File::open(&args.input_file)?;
-            SMDHIcon::from_cci(&mut file)?.get_large_icon()
+            SMDHIcon::from_cci(&mut input)?.get_large_icon()
         }
         _ => return Err(Box::new(InvalidContentType { content_type })),
     };
