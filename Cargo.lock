@@ -15,6 +15,7 @@ dependencies = [
  "gdk-pixbuf",
  "gio",
  "pico-args",
+ "thiserror",
 ]
 
 [[package]]

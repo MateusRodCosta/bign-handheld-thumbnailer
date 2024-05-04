@@ -15,6 +15,7 @@ publish = false
 pico-args = "0.5.0"
 gio = "0.19.3"
 gdk-pixbuf = "0.19.2"
+thiserror = "1.0.59"
 
 [profile.release]
 strip = true

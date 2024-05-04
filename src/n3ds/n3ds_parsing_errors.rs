@@ -1,133 +1,47 @@
-use std::error::Error;
-use std::fmt;
+use thiserror::Error;
 
 use super::n3ds_structures::CIAMetaSize;
 
-#[derive(Debug, Clone)]
-pub struct N3DSCIAParsingErrorMetaInvalidSize(pub u32);
-
-impl fmt::Display for N3DSCIAParsingErrorMetaInvalidSize {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "CIA Meta block size is invalid. Found {:?}", self.0,)
-    }
+#[derive(Error, Debug)]
+pub enum N3DSParsingError {
+    #[error(transparent)]
+    FileMagicNotFound(#[from] FileMagicNotFound),
+    #[error("No extended header on 3DSX file. Found header size is {0}")]
+    N3DSXParsingError3DSXNoExtendedHeader(u16),
+    #[error(transparent)]
+    CIAParsingError(#[from] CIAParsingError),
+    #[error("Error getting Executable Content (CXI) partition!")]
+    CCIErrorGettingExecutableContentPartition,
+    #[error(transparent)]
+    CXIParsingError(#[from] CXIParsingError),
+    #[error(transparent)]
+    UnableToExtractN3DSIcon(#[from] Box<dyn std::error::Error>),
 }
 
-impl Error for N3DSCIAParsingErrorMetaInvalidSize {}
-
-#[derive(Debug, Clone)]
-pub struct N3DSCIAParsingErrorMetaNotExpectedValue(pub CIAMetaSize);
-
-impl fmt::Display for N3DSCIAParsingErrorMetaNotExpectedValue {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "CIA Meta block not present or doesn't contain the expected value. Found {:?}",
-            self.0,
-        )
-    }
+#[derive(Error, Debug)]
+pub enum FileMagicNotFound {
+    #[error("SMDH magic not found! Found: {0:#04X?}")]
+    SMDHMagicNotFound([u8; 4]),
+    #[error("3DSX magic not found! Found: {0:#04X?}")]
+    N3DSXMagicNotFound([u8; 4]),
+    #[error("NCCH magic not found! Found: {0:#04X?}")]
+    NCCHMagicNotFound([u8; 4]),
+    #[error("NCSD magic not found! Found: {0:#04X?}")]
+    NCSDMagicNotFound([u8; 4]),
 }
 
-impl Error for N3DSCIAParsingErrorMetaNotExpectedValue {}
-
-#[derive(Debug, Clone)]
-pub struct N3DSParsingErrorSMDHMagicNotFound;
-
-impl fmt::Display for N3DSParsingErrorSMDHMagicNotFound {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "SMDH magic not found!")
-    }
+#[derive(Error, Debug)]
+pub enum CIAParsingError {
+    #[error("CIA Meta block size is ivalid. Found {0}")]
+    MetaInvalidSize(u32),
+    #[error("CIA Meta block not present or doesn't contain the expected value. Found {0:?}")]
+    MetaNotExpectedValue(CIAMetaSize),
 }
 
-impl Error for N3DSParsingErrorSMDHMagicNotFound {}
-
-#[derive(Debug, Clone)]
-pub struct N3DSParsingError3DSXMagicNotFound;
-
-impl fmt::Display for N3DSParsingError3DSXMagicNotFound {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "3DSX magic not found!")
-    }
+#[derive(Error, Debug)]
+pub enum CXIParsingError {
+    #[error("CXI file (usually internal to a CCI) is encrypted, consider using decrypted files instead.")]
+    FileEncrypted,
+    #[error("Error finding icon file inside ExeFS!")]
+    ExeFSIconFileNotFound,
 }
-
-impl Error for N3DSParsingError3DSXMagicNotFound {}
-
-#[derive(Debug, Clone)]
-pub struct N3DSParsingError3DSXNoExtendedHeader(pub u16);
-
-impl fmt::Display for N3DSParsingError3DSXNoExtendedHeader {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "No extended header on 3DSX file. Found header size is {}",
-            self.0
-        )
-    }
-}
-
-impl Error for N3DSParsingError3DSXNoExtendedHeader {}
-
-#[derive(Debug, Clone)]
-pub struct UnableToExtractN3DSIcon;
-
-impl fmt::Display for UnableToExtractN3DSIcon {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Unable to extract 3DS icon!")
-    }
-}
-
-impl Error for UnableToExtractN3DSIcon {}
-
-#[derive(Debug, Clone)]
-pub struct N3DSParsingErrorCXIMagicNotFound;
-
-impl fmt::Display for N3DSParsingErrorCXIMagicNotFound {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "NCCH magic not found for CXI!")
-    }
-}
-
-impl Error for N3DSParsingErrorCXIMagicNotFound {}
-
-#[derive(Debug, Clone)]
-pub struct N3DSParsingErrorCCIMagicNotFound;
-
-impl fmt::Display for N3DSParsingErrorCCIMagicNotFound {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "NCSD magic not found for CCI!")
-    }
-}
-
-impl Error for N3DSParsingErrorCCIMagicNotFound {}
-
-#[derive(Debug, Clone)]
-pub struct N3DSParsingErrorCCIErrorGettingExecutableContentPartition;
-
-impl fmt::Display for N3DSParsingErrorCCIErrorGettingExecutableContentPartition {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Error getting Executable Content (CXI) partition!")
-    }
-}
-
-impl Error for N3DSParsingErrorCCIErrorGettingExecutableContentPartition {}
-
-#[derive(Debug, Clone)]
-pub struct N3DSParsingErrorExeFSIconFileNotFound;
-
-impl fmt::Display for N3DSParsingErrorExeFSIconFileNotFound {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Error finding icon file inside ExeFS!")
-    }
-}
-
-impl Error for N3DSParsingErrorExeFSIconFileNotFound {}
-
-#[derive(Debug, Clone)]
-pub struct N3DSParsingErrorCXIFileEncrypted;
-
-impl fmt::Display for N3DSParsingErrorCXIFileEncrypted {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "CXI file or CXI file internal to a CCI is encrypted, consider using decrypted files instead.")
-    }
-}
-
-impl Error for N3DSParsingErrorCXIFileEncrypted {}
