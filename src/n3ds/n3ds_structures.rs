@@ -438,28 +438,20 @@ impl ExeFSFileHeader {
         // Each header is composed of 16 bytes, if the header is empty it will be filled with zeroes
         // Therefore we can read it as a u128 and check if it's results in a zero as a small optimization
 
-        let mut is_empty = [0u8; 16];
-        file_data.read_exact(&mut is_empty)?;
-        let is_empty = u128::from_ne_bytes(is_empty);
+        let mut file_header = [0u8; 16];
+        file_data.read_exact(&mut file_header)?;
+
+        let is_empty = u128::from_ne_bytes(file_header);
         let is_empty = is_empty == 0;
         if is_empty {
             return Ok(None);
         }
 
-        file_data.seek(SeekFrom::Current(-16))?;
-        let mut file_name = [0u8; 8];
-        file_data.read_exact(&mut file_name)?;
-        let file_name = str::from_utf8(&file_name)?
+        let file_name = str::from_utf8(&file_header[..0x8])?
             .trim_matches(char::from(0))
             .to_owned();
-
-        let mut file_offset = [0u8; 4];
-        file_data.read_exact(&mut file_offset)?;
-        let file_offset = u32::from_le_bytes(file_offset);
-
-        let mut file_size = [0u8; 4];
-        file_data.read_exact(&mut file_size)?;
-        let file_size = u32::from_le_bytes(file_size);
+        let file_offset = u32::from_le_bytes(file_header[0x8..0x8 + 4].try_into().unwrap());
+        let file_size = u32::from_le_bytes(file_header[0x8 + 4..].try_into().unwrap());
 
         let exefs_file_header = ExeFSFileHeader {
             file_name,
