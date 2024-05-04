@@ -18,15 +18,14 @@ impl SMDH {
         file_data: &mut T,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         let mut smdh_magic = [0u8; 4];
-        file_data.read(&mut smdh_magic)?;
+        file_data.read_exact(&mut smdh_magic)?;
         if "SMDH".as_bytes() != smdh_magic {
-            println!("{}", std::str::from_utf8(&smdh_magic)?);
             return Err(Box::new(N3DSParsingErrorSMDHMagicNotFound));
         }
 
         file_data.seek(SeekFrom::Current(0x24C0 - 0x04))?;
         let mut large_icon_bytes = [0u8; 0x1200];
-        file_data.read(&mut large_icon_bytes)?;
+        file_data.read_exact(&mut large_icon_bytes)?;
         let icon = SMDHIcon::try_from(&large_icon_bytes)?;
 
         let smdh = SMDH { icon };
@@ -47,18 +46,14 @@ impl TryFrom<&[u8; 0x1200]> for SMDHIcon {
     type Error = Box<dyn std::error::Error>;
 
     fn try_from(large_icon_bytes: &[u8; 0x1200]) -> Result<Self, Self::Error> {
-        let large_icon_colors: Vec<[u8; 2]> = large_icon_bytes
+        let large_icon_colors: Vec<u16> = large_icon_bytes
             .chunks_exact(2)
-            .map(|chunk| <[u8; 2]>::try_from(chunk))
-            .collect::<Result<Vec<_>, _>>()?;
-        let large_icon_colors: Vec<u16> = large_icon_colors
-            .iter()
-            .map(|color_bytes| u16::from_le_bytes(color_bytes.to_owned()))
+            .map(|chunk| u16::from_le_bytes(chunk.try_into().unwrap()))
             .collect();
 
         let large_icon_data: Vec<Rgb565> = large_icon_colors
             .iter()
-            .map(|color| Rgb565::try_from(color.to_owned()))
+            .map(|color| Rgb565::try_from(*color))
             .collect::<Result<Vec<_>, _>>()?;
 
         let icon = match SMDHIcon::generate_n3ds_pixbuf(&large_icon_data) {
@@ -123,13 +118,13 @@ impl N3DSX {
         file_data: &mut T,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         let mut n3dsx_magic = [0u8; 4];
-        file_data.read(&mut n3dsx_magic)?;
+        file_data.read_exact(&mut n3dsx_magic)?;
         if "3DSX".as_bytes() != n3dsx_magic {
             return Err(Box::new(N3DSParsingError3DSXMagicNotFound));
         }
 
         let mut header_size = [0u8; 2];
-        file_data.read(&mut header_size)?;
+        file_data.read_exact(&mut header_size)?;
         let header_size = u16::from_le_bytes(header_size);
         if !(header_size > 32) {
             return Err(Box::new(N3DSParsingError3DSXNoExtendedHeader {
@@ -140,11 +135,11 @@ impl N3DSX {
         file_data.seek(SeekFrom::Current(0x20 - 0x6))?;
 
         let mut smdh_offset = [0u8; 4];
-        file_data.read(&mut smdh_offset)?;
+        file_data.read_exact(&mut smdh_offset)?;
         let smdh_offset = u32::from_le_bytes(smdh_offset);
 
         let mut smdh_size = [0u8; 4];
-        file_data.read(&mut smdh_size)?;
+        file_data.read_exact(&mut smdh_size)?;
         let _smdh_size = u32::from_le_bytes(smdh_size);
 
         file_data.seek(SeekFrom::Start(smdh_offset as u64))?;
@@ -175,19 +170,19 @@ impl CIA {
         file_data.seek(SeekFrom::Start(0x08))?;
 
         let mut certificate_chain_size = [0u8; 4];
-        file_data.read(&mut certificate_chain_size)?;
+        file_data.read_exact(&mut certificate_chain_size)?;
         let certificate_chain_size = u32::from_le_bytes(certificate_chain_size);
 
         let mut ticket_size = [0u8; 4];
-        file_data.read(&mut ticket_size)?;
+        file_data.read_exact(&mut ticket_size)?;
         let ticket_size = u32::from_le_bytes(ticket_size);
 
         let mut tmd_size = [0u8; 4];
-        file_data.read(&mut tmd_size)?;
+        file_data.read_exact(&mut tmd_size)?;
         let tmd_size = u32::from_le_bytes(tmd_size);
 
         let mut meta_size = [0u8; 4];
-        file_data.read(&mut meta_size)?;
+        file_data.read_exact(&mut meta_size)?;
         let meta_size = u32::from_le_bytes(meta_size);
 
         let meta_size = CIAMetaSize::try_from(meta_size)?;
@@ -201,7 +196,7 @@ impl CIA {
         };
 
         let mut content_size = [0u8; 8];
-        file_data.read(&mut content_size)?;
+        file_data.read_exact(&mut content_size)?;
         let content_size = u64::from_le_bytes(content_size);
 
         let certificate_chain_size_with_padding = certificate_chain_size.div_ceil(0x40) * 0x40;
@@ -282,7 +277,7 @@ impl CCI {
         file_data.seek(SeekFrom::Current(0x100))?;
 
         let mut cci_magic = [0u8; 4];
-        file_data.read(&mut cci_magic)?;
+        file_data.read_exact(&mut cci_magic)?;
 
         if "NCSD".as_bytes() != cci_magic {
             return Err(Box::new(N3DSParsingErrorCCIMagicNotFound));
@@ -326,12 +321,12 @@ impl CCIPartition {
         file_data: &mut T,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         let mut offset = [0u8; 0x4];
-        file_data.read(&mut offset)?;
+        file_data.read_exact(&mut offset)?;
         let offset = u32::from_le_bytes(offset); //in media units
         let offset = offset * 0x200;
 
         let mut length = [0u8; 0x4];
-        file_data.read(&mut length)?;
+        file_data.read_exact(&mut length)?;
         let length = u32::from_le_bytes(length); //in media units
         let length = length * 0x200;
 
@@ -364,7 +359,7 @@ impl CXI {
         file_data.seek(SeekFrom::Current(0x100))?;
 
         let mut cxi_magic = [0u8; 4];
-        file_data.read(&mut cxi_magic)?;
+        file_data.read_exact(&mut cxi_magic)?;
 
         if "NCCH".as_bytes() != cxi_magic {
             return Err(Box::new(N3DSParsingErrorCXIMagicNotFound));
@@ -373,7 +368,7 @@ impl CXI {
         file_data.seek(SeekFrom::Current(0x188 - 0x104))?;
 
         let mut flags = [0u8; 8];
-        file_data.read(&mut flags)?;
+        file_data.read_exact(&mut flags)?;
         let flags_index_7 = flags[7];
         let is_no_crypto = (flags_index_7 & 0x4) == 0x4;
 
@@ -387,12 +382,12 @@ impl CXI {
         file_data.seek(SeekFrom::Current(0x1A0 - 0x190))?;
 
         let mut exefs_offset = [0u8; 4];
-        file_data.read(&mut exefs_offset)?;
+        file_data.read_exact(&mut exefs_offset)?;
         let exefs_offset = u32::from_le_bytes(exefs_offset); // in media units
         let exefs_offset = exefs_offset * 0x200;
 
         let mut exefs_size = [0u8; 4];
-        file_data.read(&mut exefs_size)?;
+        file_data.read_exact(&mut exefs_size)?;
         let exefs_size = u32::from_le_bytes(exefs_size); // in media units
         let _exefs_size = exefs_size * 0x200;
 
@@ -464,7 +459,7 @@ impl ExeFSFileHeader {
         // Therefore we can read it as a u128 and check if it's results in a zero as a small optimization
 
         let mut is_empty = [0u8; 16];
-        file_data.read(&mut is_empty)?;
+        file_data.read_exact(&mut is_empty)?;
         let is_empty = u128::from_ne_bytes(is_empty);
         let is_empty = is_empty == 0;
         if is_empty {
@@ -474,17 +469,17 @@ impl ExeFSFileHeader {
         file_data.seek(SeekFrom::Current(-16))?;
 
         let mut file_name = [0u8; 8];
-        file_data.read(&mut file_name)?;
+        file_data.read_exact(&mut file_name)?;
         let file_name = str::from_utf8(&file_name)?
             .trim_matches(char::from(0))
             .to_owned();
 
         let mut file_offset = [0u8; 4];
-        file_data.read(&mut file_offset)?;
+        file_data.read_exact(&mut file_offset)?;
         let file_offset = u32::from_le_bytes(file_offset);
 
         let mut file_size = [0u8; 4];
-        file_data.read(&mut file_size)?;
+        file_data.read_exact(&mut file_size)?;
         let file_size = u32::from_le_bytes(file_size);
 
         let exefs_file_header = ExeFSFileHeader {
