@@ -36,59 +36,25 @@ use crate::utils::rgb565::Rgb565;
 */
 
 #[derive(Debug, Clone)]
-pub struct SMDH {
-    icon: SMDHIcon,
-}
-
-impl SMDH {
-    pub fn from_data<T: Read + Seek>(
-        file_data: &mut T,
-    ) -> Result<Self, Box<dyn std::error::Error>> {
-        let mut smdh_magic = [0u8; 4];
-        file_data.read_exact(&mut smdh_magic)?;
-        if "SMDH".as_bytes() != smdh_magic {
-            return Err(Box::new(N3DSParsingErrorSMDHMagicNotFound));
-        }
-
-        file_data.seek(SeekFrom::Current(0x24C0 - 0x04))?;
-        let mut large_icon_bytes = [0u8; 0x1200];
-        file_data.read_exact(&mut large_icon_bytes)?;
-        let icon = SMDHIcon::try_from(&large_icon_bytes)?;
-
-        let smdh = SMDH { icon };
-        Ok(smdh)
-    }
-
-    pub fn get_icon(&self) -> SMDHIcon {
-        self.icon.clone()
-    }
-}
-
-#[derive(Debug, Clone)]
 pub struct SMDHIcon {
     large_icon: Pixbuf,
 }
 
-impl TryFrom<&[u8; 0x1200]> for SMDHIcon {
-    type Error = Box<dyn std::error::Error>;
+impl SMDHIcon {
+    pub fn get_large_icon(&self) -> Pixbuf {
+        self.large_icon.clone()
+    }
 
-    fn try_from(large_icon_bytes: &[u8; 0x1200]) -> Result<Self, Self::Error> {
+    fn generate_pixbuf_from_bytes(
+        large_icon_bytes: [u8; 0x1200],
+    ) -> Result<Pixbuf, Box<dyn std::error::Error>> {
         let large_icon_data: Vec<Rgb565> = large_icon_bytes
             .chunks_exact(2)
             .map(|chunk| u16::from_le_bytes(chunk.try_into().unwrap()))
             .map(|color| Rgb565::try_from(color))
             .collect::<Result<Vec<_>, _>>()?;
 
-        let Some(icon) = SMDHIcon::generate_n3ds_pixbuf(&large_icon_data) else {
-            return Err(Box::new(UnableToExtractN3DSIcon));
-        };
-        Ok(SMDHIcon { large_icon: icon })
-    }
-}
-
-impl SMDHIcon {
-    fn generate_n3ds_pixbuf(large_icon_data: &[Rgb565]) -> Option<Pixbuf> {
-        let pixbuf = Pixbuf::new(gdk_pixbuf::Colorspace::Rgb, true, 8, 48, 48)?;
+        let pixbuf = Pixbuf::new(gdk_pixbuf::Colorspace::Rgb, true, 8, 48, 48).unwrap();
 
         /*
          * The large 3DS icon is 48x48 px and divided in tiles according to Morton order
@@ -122,21 +88,28 @@ impl SMDHIcon {
             }
         }
 
-        Some(pixbuf)
-    }
-
-    pub fn get_large_icon(&self) -> Pixbuf {
-        self.large_icon.clone()
+        Ok(pixbuf)
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct N3DSX {
-    smdh: SMDH,
-}
+impl SMDHIcon {
+    pub fn from_smdh<T: Read + Seek>(
+        file_data: &mut T,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
+        let mut smdh_magic = [0u8; 4];
+        file_data.read_exact(&mut smdh_magic)?;
+        if "SMDH".as_bytes() != smdh_magic {
+            return Err(Box::new(N3DSParsingErrorSMDHMagicNotFound));
+        }
 
-impl N3DSX {
-    pub fn from_data<T: Read + Seek>(
+        file_data.seek(SeekFrom::Current(0x24C0 - 0x04))?;
+        let mut large_icon_bytes = [0u8; 0x1200];
+        file_data.read_exact(&mut large_icon_bytes)?;
+        let large_icon = SMDHIcon::generate_pixbuf_from_bytes(large_icon_bytes)?;
+        Ok(SMDHIcon { large_icon })
+    }
+
+    pub fn from_n3dsx<T: Read + Seek>(
         file_data: &mut T,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         let mut n3dsx_magic = [0u8; 4];
@@ -164,24 +137,11 @@ impl N3DSX {
         let _smdh_size = u32::from_le_bytes(smdh_size);
 
         file_data.seek(SeekFrom::Start(smdh_offset.into()))?;
-        let smdh = SMDH::from_data(file_data)?;
-        let n3dsx = N3DSX { smdh };
-        Ok(n3dsx)
+        let smdh_icon = SMDHIcon::from_smdh(file_data)?;
+        Ok(smdh_icon)
     }
 
-    pub fn get_smdh(&self) -> SMDH {
-        self.smdh.clone()
-    }
-}
-
-pub struct CIA {
-    meta: CIAMeta,
-}
-
-impl CIA {
-    pub fn from_data<T: Read + Seek>(
-        file_data: &mut T,
-    ) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn from_cia<T: Read + Seek>(file_data: &mut T) -> Result<Self, Box<dyn std::error::Error>> {
         /*
          * The meta section isn't in a fixed place and is located after a bunch of sections whose
          * size can vary, therefore it's needed to at the very last fetch the other sizes and
@@ -230,32 +190,93 @@ impl CIA {
             + u64::from(tmd_size_with_padding)
             + content_size_with_padding;
         file_data.seek(SeekFrom::Start(0x2040 + sections_offset))?;
-        let meta = CIAMeta::from_data(file_data)?;
-        let cia = CIA { meta };
-        Ok(cia)
+        let smdh_icon = SMDHIcon::from_cia_meta(file_data)?;
+        Ok(smdh_icon)
     }
 
-    pub fn get_meta(&self) -> CIAMeta {
-        self.meta.clone()
-    }
-}
-#[derive(Debug, Clone)]
-pub struct CIAMeta {
-    icon_data: SMDH,
-}
-
-impl CIAMeta {
-    pub fn from_data<T: Read + Seek>(
+    pub fn from_cia_meta<T: Read + Seek>(
         file_data: &mut T,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         file_data.seek(SeekFrom::Current(0x400))?;
-        let icon_data = SMDH::from_data(file_data)?;
-        let cia_meta = CIAMeta { icon_data };
-        Ok(cia_meta)
+        let smdh_icon = SMDHIcon::from_smdh(file_data)?;
+        Ok(smdh_icon)
     }
 
-    pub fn get_icon_data(&self) -> SMDH {
-        self.icon_data.clone()
+    pub fn from_cci<T: Read + Seek>(file_data: &mut T) -> Result<Self, Box<dyn std::error::Error>> {
+        file_data.seek(SeekFrom::Start(0x100))?;
+        let mut cci_magic = [0u8; 4];
+        file_data.read_exact(&mut cci_magic)?;
+        if "NCSD".as_bytes() != cci_magic {
+            return Err(Box::new(N3DSParsingErrorCCIMagicNotFound));
+        }
+
+        file_data.seek(SeekFrom::Start(0x120))?;
+        let partition_table = (0..8)
+            .map(|_| CCIPartition::from_data(file_data))
+            .collect::<Result<Vec<_>, _>>()?;
+        let Some(first_partition) = partition_table.first() else {
+            return Err(Box::new(
+                N3DSParsingErrorCCIErrorGettingExecutableContentPartition,
+            ));
+        };
+
+        file_data.seek(SeekFrom::Start(first_partition.offset().into()))?;
+        let smdh_icon = SMDHIcon::from_cxi(file_data)?;
+        Ok(smdh_icon)
+    }
+
+    pub fn from_cxi<T: Read + Seek>(file_data: &mut T) -> Result<Self, Box<dyn std::error::Error>> {
+        file_data.seek(SeekFrom::Current(0x100))?;
+        let mut cxi_magic = [0u8; 4];
+        file_data.read_exact(&mut cxi_magic)?;
+        if "NCCH".as_bytes() != cxi_magic {
+            return Err(Box::new(N3DSParsingErrorCXIMagicNotFound));
+        }
+
+        file_data.seek(SeekFrom::Current(0x188 - 0x104))?;
+        let mut flags = [0u8; 8];
+        file_data.read_exact(&mut flags)?;
+        let flags_index_7 = flags[7];
+        let is_no_crypto = (flags_index_7 & 0x4) == 0x4;
+        if !is_no_crypto {
+            return Err(Box::new(N3DSParsingErrorCXIFileEncrypted));
+        }
+
+        file_data.seek(SeekFrom::Current(0x1A0 - 0x190))?;
+        let mut exefs_offset = [0u8; 4];
+        file_data.read_exact(&mut exefs_offset)?;
+        let exefs_offset = u32::from_le_bytes(exefs_offset); // in media units
+        let exefs_offset = exefs_offset * 0x200;
+
+        let mut exefs_size = [0u8; 4];
+        file_data.read_exact(&mut exefs_size)?;
+        let exefs_size = u32::from_le_bytes(exefs_size); // in media units
+        let _exefs_size = exefs_size * 0x200;
+
+        file_data.seek(SeekFrom::Current(exefs_offset as i64 - 0x1A8))?;
+        let smdh_icon = SMDHIcon::from_exefs(file_data)?;
+        Ok(smdh_icon)
+    }
+
+    pub fn from_exefs<T: Read + Seek>(
+        file_data: &mut T,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
+        let file_headers: Vec<ExeFSFileHeader> = (0..10)
+            .map(|_| ExeFSFileHeader::from_data(file_data))
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .flatten()
+            .collect();
+
+        let Some(icon_file) = file_headers.iter().find(|item| item.file_name() == "icon") else {
+            return Err(Box::new(N3DSParsingErrorExeFSIconFileNotFound));
+        };
+
+        file_data.seek(SeekFrom::Current(
+            0x200 + icon_file.file_offset() as i64 - 0xA0,
+        ))?;
+        let smdh_icon = SMDHIcon::from_smdh(file_data)?;
+        Ok(smdh_icon)
     }
 }
 
@@ -278,44 +299,6 @@ impl TryFrom<u32> for CIAMetaSize {
             0x3AC0 => Ok(CIAMetaSize::Present),
             _ => Err(Self::Error { 0: value }),
         }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct CCI {
-    cxi: CXI,
-}
-
-impl CCI {
-    pub fn from_data<T: Read + Seek>(
-        file_data: &mut T,
-    ) -> Result<Self, Box<dyn std::error::Error>> {
-        file_data.seek(SeekFrom::Start(0x100))?;
-        let mut cci_magic = [0u8; 4];
-        file_data.read_exact(&mut cci_magic)?;
-        if "NCSD".as_bytes() != cci_magic {
-            return Err(Box::new(N3DSParsingErrorCCIMagicNotFound));
-        }
-
-        file_data.seek(SeekFrom::Start(0x120))?;
-        let partition_table = (0..8)
-            .map(|_| CCIPartition::from_data(file_data))
-            .collect::<Result<Vec<_>, _>>()?;
-
-        let Some(first_partition) = partition_table.first() else {
-            return Err(Box::new(
-                N3DSParsingErrorCCIErrorGettingExecutableContentPartition,
-            ));
-        };
-
-        file_data.seek(SeekFrom::Start(first_partition.offset().into()))?;
-        let cxi = CXI::from_data(file_data)?;
-        let cci = CCI { cxi };
-        Ok(cci)
-    }
-
-    pub fn get_cxi(&self) -> CXI {
-        self.cxi.clone()
     }
 }
 
@@ -352,98 +335,6 @@ impl CCIPartition {
 
     pub fn _length(&self) -> u32 {
         self._length
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct CXI {
-    _is_decrypted: bool,
-    exefs: Option<ExeFS>,
-}
-
-impl CXI {
-    pub fn from_data<T: Read + Seek>(
-        file_data: &mut T,
-    ) -> Result<Self, Box<dyn std::error::Error>> {
-        file_data.seek(SeekFrom::Current(0x100))?;
-        let mut cxi_magic = [0u8; 4];
-        file_data.read_exact(&mut cxi_magic)?;
-        if "NCCH".as_bytes() != cxi_magic {
-            return Err(Box::new(N3DSParsingErrorCXIMagicNotFound));
-        }
-
-        file_data.seek(SeekFrom::Current(0x188 - 0x104))?;
-        let mut flags = [0u8; 8];
-        file_data.read_exact(&mut flags)?;
-        let flags_index_7 = flags[7];
-        let is_no_crypto = (flags_index_7 & 0x4) == 0x4;
-
-        if !is_no_crypto {
-            return Ok(CXI {
-                _is_decrypted: false,
-                exefs: None,
-            });
-        }
-
-        file_data.seek(SeekFrom::Current(0x1A0 - 0x190))?;
-        let mut exefs_offset = [0u8; 4];
-        file_data.read_exact(&mut exefs_offset)?;
-        let exefs_offset = u32::from_le_bytes(exefs_offset); // in media units
-        let exefs_offset = exefs_offset * 0x200;
-
-        let mut exefs_size = [0u8; 4];
-        file_data.read_exact(&mut exefs_size)?;
-        let exefs_size = u32::from_le_bytes(exefs_size); // in media units
-        let _exefs_size = exefs_size * 0x200;
-
-        file_data.seek(SeekFrom::Current(exefs_offset as i64 - 0x1A8))?;
-        let exefs = ExeFS::from_data(file_data)?;
-        let cxi = CXI {
-            _is_decrypted: true,
-            exefs: Some(exefs),
-        };
-        Ok(cxi)
-    }
-
-    pub fn _is_decrypted(&self) -> bool {
-        self._is_decrypted
-    }
-
-    pub fn get_exefs(&self) -> Option<ExeFS> {
-        self.exefs.clone()
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct ExeFS {
-    icon: SMDH,
-}
-
-impl ExeFS {
-    pub fn from_data<T: Read + Seek>(
-        file_data: &mut T,
-    ) -> Result<Self, Box<dyn std::error::Error>> {
-        let file_headers: Vec<ExeFSFileHeader> = (0..10)
-            .map(|_| ExeFSFileHeader::from_data(file_data))
-            .collect::<Result<Vec<_>, _>>()?
-            .into_iter()
-            .flatten()
-            .collect();
-
-        let Some(icon_file) = file_headers.iter().find(|item| item.file_name() == "icon") else {
-            return Err(Box::new(N3DSParsingErrorExeFSIconFileNotFound));
-        };
-
-        file_data.seek(SeekFrom::Current(
-            0x200 + icon_file.file_offset() as i64 - 0xA0,
-        ))?;
-        let smdh = SMDH::from_data(file_data)?;
-        let exefs = ExeFS { icon: smdh };
-        Ok(exefs)
-    }
-
-    pub fn get_icon_file(&self) -> SMDH {
-        self.icon.clone()
     }
 }
 

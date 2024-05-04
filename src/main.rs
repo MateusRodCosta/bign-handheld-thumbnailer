@@ -5,8 +5,7 @@ mod utils;
 
 use gdk_pixbuf::InterpType;
 use generic_errors::*;
-use n3ds::n3ds_parsing_errors::N3DSParsingErrorCXIFileEncrypted;
-use n3ds::n3ds_structures::{CCI, CIA, CXI, N3DSX, SMDH};
+use n3ds::n3ds_structures::SMDHIcon;
 use nds::extract_nds_banner;
 use pico_args::Arguments;
 use std::fs::File;
@@ -82,36 +81,23 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), Box<dyn std::
         "application/x-nintendo-ds-rom" => extract_nds_banner(&input)?.get_icon().to_owned(),
         "application/x-ctr-cia" => {
             let mut file = File::open(&args.input_file)?;
-            CIA::from_data(&mut file)?
-                .get_meta()
-                .get_icon_data()
-                .get_icon()
-                .get_large_icon()
+            SMDHIcon::from_cia(&mut file)?.get_large_icon()
         }
         "application/x-ctr-smdh" => {
             let mut file = File::open(&args.input_file)?;
-            SMDH::from_data(&mut file)?.get_icon().get_large_icon()
+            SMDHIcon::from_smdh(&mut file)?.get_large_icon()
         }
         "application/x-ctr-3dsx" | "application/x-nintendo-3ds-executable" => {
             let mut file = File::open(&args.input_file)?;
-            N3DSX::from_data(&mut file)?
-                .get_smdh()
-                .get_icon()
-                .get_large_icon()
+            SMDHIcon::from_n3dsx(&mut file)?.get_large_icon()
         }
         "application/x-ctr-cxi" => {
             let mut file = File::open(&args.input_file)?;
-            let Some(exefs) = CXI::from_data(&mut file)?.get_exefs() else {
-                return Err(Box::new(N3DSParsingErrorCXIFileEncrypted));
-            };
-            exefs.get_icon_file().get_icon().get_large_icon()
+            SMDHIcon::from_cxi(&mut file)?.get_large_icon()
         }
         "application/x-ctr-cci" | "application/x-nintendo-3ds-rom" => {
             let mut file = File::open(&args.input_file)?;
-            let Some(exefs) =  CCI::from_data(&mut file)?.get_cxi().get_exefs() else {
-               return Err(Box::new(N3DSParsingErrorCXIFileEncrypted));
-            };
-            exefs.get_icon_file().get_icon().get_large_icon()
+            SMDHIcon::from_cci(&mut file)?.get_large_icon()
         }
         _ => return Err(Box::new(InvalidContentType { content_type })),
     };
