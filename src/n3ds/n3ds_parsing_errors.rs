@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt;
 
-use super::N3DSCIAMetaSize;
+use super::n3ds_structures::CIAMetaSize;
 
 #[derive(Debug, Clone)]
 pub struct N3DSCIAParsingErrorMetaInvalidSize(pub u32);
@@ -15,7 +15,7 @@ impl fmt::Display for N3DSCIAParsingErrorMetaInvalidSize {
 impl Error for N3DSCIAParsingErrorMetaInvalidSize {}
 
 #[derive(Debug, Clone)]
-pub struct N3DSCIAParsingErrorMetaNotExpectedValue(pub N3DSCIAMetaSize);
+pub struct N3DSCIAParsingErrorMetaNotExpectedValue(pub CIAMetaSize);
 
 impl fmt::Display for N3DSCIAParsingErrorMetaNotExpectedValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

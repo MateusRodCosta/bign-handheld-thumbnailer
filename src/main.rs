@@ -6,12 +6,10 @@ mod utils;
 use gdk_pixbuf::InterpType;
 use generic_errors::*;
 use n3ds::n3ds_parsing_errors::N3DSParsingErrorCXIFileEncrypted;
-use n3ds::{
-    extract_n3ds_3dsx_content, extract_n3ds_cci_content, extract_n3ds_cia_content,
-    extract_n3ds_cxi_content, extract_n3ds_smdh_content,
-};
+use n3ds::n3ds_structures::{CCI, CIA, CXI, N3DSX, SMDH};
 use nds::extract_nds_banner;
 use pico_args::Arguments;
+use std::fs::File;
 use std::{path::Path, process::ExitCode};
 
 #[derive(Debug)]
@@ -68,6 +66,8 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), Box<dyn std::
     let content_type = utils::content_type_guess(Some(input), None);
     let content_type = content_type.0.to_string();
 
+    let mut input_file = File::open(&args.input_file)?;
+
     /* There are currently two supported file types:
      * .nds roms, indicated by the application/x-nintendo-ds-rom mime type
      * and .cia files, indicated by the application/x-ctr-cia mime type
@@ -82,35 +82,36 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), Box<dyn std::
 
     let pixbuf = match &content_type[..] {
         "application/x-nintendo-ds-rom" => extract_nds_banner(&input)?.get_icon().to_owned(),
-        "application/x-ctr-cia" => extract_n3ds_cia_content(&input)?
-            .get_smdh_content()
-            .get_large_icon()
-            .to_owned(),
-        "application/x-ctr-smdh" => extract_n3ds_smdh_content(&input)?
-            .get_large_icon()
-            .to_owned(),
+        "application/x-ctr-cia" => CIA::from_data(&mut input_file)?
+            .get_meta()
+            .get_icon_data()
+            .get_icon()
+            .get_large_icon(),
+        "application/x-ctr-smdh" => SMDH::from_data(&mut input_file)?
+            .get_icon()
+            .get_large_icon(),
         "application/x-ctr-3dsx" | "application/x-nintendo-3ds-executable" => {
-            extract_n3ds_3dsx_content(&input)?
-                .get_smdh_content()
+            N3DSX::from_data(&mut input_file)?
+                .get_smdh()
+                .get_icon()
                 .get_large_icon()
-                .to_owned()
         }
         "application/x-ctr-cxi" => {
-            let exefs = match extract_n3ds_cxi_content(&input)?.get_exefs() {
+            let exefs = match CXI::from_data(&mut input_file)?.get_exefs() {
                 Some(x) => x,
                 None => return Err(Box::new(N3DSParsingErrorCXIFileEncrypted)),
-            }
-            .to_owned();
-            exefs.get_icon().get_large_icon().to_owned()
+            };
+            exefs.get_icon_file().get_icon().get_large_icon()
         }
         "application/x-ctr-cci" | "application/x-nintendo-3ds-rom" => {
-            let exefs = match extract_n3ds_cci_content(&input)?.get_cxi().get_exefs() {
+            let exefs = match CCI::from_data(&mut input_file)?.get_cxi().get_exefs() {
                 Some(x) => x,
                 None => return Err(Box::new(N3DSParsingErrorCXIFileEncrypted)),
             }
             .to_owned();
-            exefs.get_icon().get_large_icon().to_owned()
+            exefs.get_icon_file().get_icon().get_large_icon().to_owned()
         }
+
         _ => return Err(Box::new(InvalidContentType { content_type })),
     };
 
