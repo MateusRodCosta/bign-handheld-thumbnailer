@@ -7,6 +7,34 @@ use std::{
 use crate::n3ds::n3ds_parsing_errors::*;
 use crate::utils::rgb565::Rgb565;
 
+/*
+ * Intially SMDH, 3DSX and CIA files were supported.
+ * Later on, support for CCI and CXI (including parsing contents of ExeFS) was added.
+ *
+ * Consider the following links for more info about the CIA, SMDH and 3DSX structure:
+ *
+ * On GBATEK:
+ * SMDH: https://problemkaputt.de/gbatek.htm#3dsfilesvideoiconssmdh
+ * 3DSX: https://problemkaputt.de/gbatek.htm#3dsfilestitlehomebrewexecutables3dsx
+ * CIA: https://problemkaputt.de/gbatek.htm#3dsfilestitleinstallationarchivecia
+ * CCI (scpecialization of NCSD): https://problemkaputt.de/gbatek.htm#3dsfilesncsdformat
+ * CXI (specialization of NCCH):https://problemkaputt.de/gbatek.htm#3dsfilesncchformat
+ * ExeFS (internal to CXI): https://problemkaputt.de/gbatek.htm#3dsfilesncchexefs
+ *
+ * On 3dbrew:
+ * SMDH: https://www.3dbrew.org/wiki/SMDH
+ * 3DSX: https://www.3dbrew.org/wiki/3DSX_Format
+ * CIA: https://www.3dbrew.org/wiki/CIA
+ * CCI: https://www.3dbrew.org/wiki/CCI
+ * CXI: https://www.3dbrew.org/wiki/NCCH#CXI
+ * ExeFS: https://www.3dbrew.org/wiki/ExeFS
+ *
+ * Do note that the Meta section conatining a SMHD might or might not be present on .cia files.
+ * There's a proper way to get icons ffrom a CIA, getting it from the Meta section is currently a shortcut.
+ *
+ * Do also note that the extended header with a SMHD is optional for .3dsx
+*/
+
 #[derive(Debug, Clone)]
 pub struct SMDH {
     icon: SMDHIcon,
