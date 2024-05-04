@@ -4,9 +4,8 @@ use std::{
     str,
 };
 
+use crate::n3ds::n3ds_parsing_errors::*;
 use crate::utils::rgb565::Rgb565;
-
-use super::n3ds_parsing_errors::*;
 
 #[derive(Debug, Clone)]
 pub struct SMDH {
@@ -46,14 +45,10 @@ impl TryFrom<&[u8; 0x1200]> for SMDHIcon {
     type Error = Box<dyn std::error::Error>;
 
     fn try_from(large_icon_bytes: &[u8; 0x1200]) -> Result<Self, Self::Error> {
-        let large_icon_colors: Vec<u16> = large_icon_bytes
+        let large_icon_data: Vec<Rgb565> = large_icon_bytes
             .chunks_exact(2)
             .map(|chunk| u16::from_le_bytes(chunk.try_into().unwrap()))
-            .collect();
-
-        let large_icon_data: Vec<Rgb565> = large_icon_colors
-            .iter()
-            .map(|color| Rgb565::try_from(*color))
+            .map(|color| Rgb565::try_from(color))
             .collect::<Result<Vec<_>, _>>()?;
 
         let icon = match SMDHIcon::generate_n3ds_pixbuf(&large_icon_data) {
@@ -132,8 +127,7 @@ impl N3DSX {
             }));
         }
 
-        file_data.seek(SeekFrom::Current(0x20 - 0x6))?;
-
+        file_data.seek(SeekFrom::Start(0x20))?;
         let mut smdh_offset = [0u8; 4];
         file_data.read_exact(&mut smdh_offset)?;
         let smdh_offset = u32::from_le_bytes(smdh_offset);
@@ -142,7 +136,7 @@ impl N3DSX {
         file_data.read_exact(&mut smdh_size)?;
         let _smdh_size = u32::from_le_bytes(smdh_size);
 
-        file_data.seek(SeekFrom::Start(smdh_offset as u64))?;
+        file_data.seek(SeekFrom::Start(smdh_offset.into()))?;
         let smdh = SMDH::from_data(file_data)?;
         let n3dsx = N3DSX { smdh };
         Ok(n3dsx)
@@ -168,7 +162,6 @@ impl CIA {
          */
 
         file_data.seek(SeekFrom::Start(0x08))?;
-
         let mut certificate_chain_size = [0u8; 4];
         file_data.read_exact(&mut certificate_chain_size)?;
         let certificate_chain_size = u32::from_le_bytes(certificate_chain_size);
@@ -205,15 +198,12 @@ impl CIA {
         let _meta_size_with_padding = meta_size.div_ceil(0x40) * 0x40;
         let content_size_with_padding = content_size.div_ceil(0x40) * 0x40;
 
-        file_data.seek(SeekFrom::Start(
-            0x2040u64
-                + certificate_chain_size_with_padding as u64
-                + ticket_size_with_padding as u64
-                + tmd_size_with_padding as u64
-                + content_size_with_padding,
-        ))?;
+        let sections_offset: u64 = u64::from(certificate_chain_size_with_padding)
+            + u64::from(ticket_size_with_padding)
+            + u64::from(tmd_size_with_padding)
+            + content_size_with_padding;
+        file_data.seek(SeekFrom::Start(0x2040 + sections_offset))?;
         let meta = CIAMeta::from_data(file_data)?;
-
         let cia = CIA { meta };
         Ok(cia)
     }
@@ -232,7 +222,6 @@ impl CIAMeta {
         file_data: &mut T,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         file_data.seek(SeekFrom::Current(0x400))?;
-
         let icon_data = SMDH::from_data(file_data)?;
         let cia_meta = CIAMeta { icon_data };
         Ok(cia_meta)
@@ -274,17 +263,14 @@ impl CCI {
     pub fn from_data<T: Read + Seek>(
         file_data: &mut T,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        file_data.seek(SeekFrom::Current(0x100))?;
-
+        file_data.seek(SeekFrom::Start(0x100))?;
         let mut cci_magic = [0u8; 4];
         file_data.read_exact(&mut cci_magic)?;
-
         if "NCSD".as_bytes() != cci_magic {
             return Err(Box::new(N3DSParsingErrorCCIMagicNotFound));
         }
 
-        file_data.seek(SeekFrom::Current(0x120 - 0x100 - 4))?;
-
+        file_data.seek(SeekFrom::Start(0x120))?;
         let partition_table = (0..8)
             .map(|_| CCIPartition::from_data(file_data))
             .collect::<Result<Vec<_>, _>>()?;
@@ -298,8 +284,7 @@ impl CCI {
             }
         };
 
-        file_data.seek(SeekFrom::Current(first_partition.offset() as i64 - 0x160))?;
-
+        file_data.seek(SeekFrom::Start(first_partition.offset().into()))?;
         let cxi = CXI::from_data(file_data)?;
         let cci = CCI { cxi };
         Ok(cci)
@@ -357,16 +342,13 @@ impl CXI {
         file_data: &mut T,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         file_data.seek(SeekFrom::Current(0x100))?;
-
         let mut cxi_magic = [0u8; 4];
         file_data.read_exact(&mut cxi_magic)?;
-
         if "NCCH".as_bytes() != cxi_magic {
             return Err(Box::new(N3DSParsingErrorCXIMagicNotFound));
         }
 
         file_data.seek(SeekFrom::Current(0x188 - 0x104))?;
-
         let mut flags = [0u8; 8];
         file_data.read_exact(&mut flags)?;
         let flags_index_7 = flags[7];
@@ -380,7 +362,6 @@ impl CXI {
         }
 
         file_data.seek(SeekFrom::Current(0x1A0 - 0x190))?;
-
         let mut exefs_offset = [0u8; 4];
         file_data.read_exact(&mut exefs_offset)?;
         let exefs_offset = u32::from_le_bytes(exefs_offset); // in media units
@@ -392,9 +373,7 @@ impl CXI {
         let _exefs_size = exefs_size * 0x200;
 
         file_data.seek(SeekFrom::Current(exefs_offset as i64 - 0x1A8))?;
-
         let exefs = ExeFS::from_data(file_data)?;
-
         let cxi = CXI {
             _is_decrypted: true,
             exefs: Some(exefs),
@@ -420,10 +399,12 @@ impl ExeFS {
     pub fn from_data<T: Read + Seek>(
         file_data: &mut T,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        let file_headers = (0..10)
+        let file_headers: Vec<ExeFSFileHeader> = (0..10)
             .map(|_| ExeFSFileHeader::from_data(file_data))
-            .collect::<Result<Vec<_>, _>>()?;
-        let file_headers: Vec<ExeFSFileHeader> = file_headers.into_iter().flatten().collect();
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .flatten()
+            .collect();
 
         let icon_file = match file_headers.iter().find(|item| item.file_name() == "icon") {
             Some(x) => x,
@@ -434,7 +415,6 @@ impl ExeFS {
             0x200 + icon_file.file_offset() as i64 - 0xA0,
         ))?;
         let smdh = SMDH::from_data(file_data)?;
-
         let exefs = ExeFS { icon: smdh };
         Ok(exefs)
     }
@@ -467,7 +447,6 @@ impl ExeFSFileHeader {
         }
 
         file_data.seek(SeekFrom::Current(-16))?;
-
         let mut file_name = [0u8; 8];
         file_data.read_exact(&mut file_name)?;
         let file_name = str::from_utf8(&file_name)?
