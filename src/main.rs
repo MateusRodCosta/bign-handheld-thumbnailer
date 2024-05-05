@@ -122,17 +122,12 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), MainError> {
         "application/x-ctr-cci" | "application/x-nintendo-3ds-rom" => {
             SMDHIcon::from_cci(&mut input)?.get_large_icon()
         }
-        _ => {
-            return Err(MainError::InvalidContentType {
-                0: content_type.to_string(),
-            })
-        }
+        _ => return Err(MainError::InvalidContentType(content_type.to_string())),
     };
 
     // Whether to do optional scaling
     let pixbuf = size
-        .map(|size| pixbuf.scale_simple(size, size, InterpType::Bilinear))
-        .flatten()
+        .and_then(|size| pixbuf.scale_simple(size, size, InterpType::Bilinear))
         .unwrap_or(pixbuf);
 
     pixbuf.savev(output, "png", &[])?;

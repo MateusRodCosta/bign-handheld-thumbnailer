@@ -68,11 +68,13 @@ impl SMDHIcon {
 
         let mut pos = 0;
         for tile_y in 0..6 {
+            let tile_y_offset = tile_y * 8;
             for tile_x in 0..6 {
-                for k in 0..64 {
-                    let x = tile_order[k] & 0x7;
-                    let y = tile_order[k] >> 3;
-                    let coords = (x + (tile_x * 8), y + (tile_y * 8));
+                let tile_x_offset = tile_x * 8;
+                for tile_pos in tile_order {
+                    let x = tile_pos & 0x7;
+                    let y = tile_pos >> 3;
+                    let coords = (x + tile_x_offset, y + tile_y_offset);
 
                     let rgb = &large_icon_data[pos];
                     pixbuf.put_pixel(coords.0, coords.1, rgb.r(), rgb.g(), rgb.b(), 0xFF);
@@ -91,9 +93,7 @@ impl SMDHIcon {
         let mut smdh_magic = [0u8; 4];
         f.read_exact(&mut smdh_magic)?;
         if b"SMDH" != &smdh_magic {
-            return Err(N3DSParsingError::FileMagicNotFound(
-                FileMagicNotFound::SMDHMagicNotFound(smdh_magic),
-            ));
+            return Err(N3DSParsingError::FileMagicNotFound("SMDH", smdh_magic));
         }
 
         const SMDH_LARGE_ICON_OFFSET: i64 = 0x24C0;
@@ -111,16 +111,16 @@ impl SMDHIcon {
         let mut n3dsx_magic = [0u8; 4];
         f.read_exact(&mut n3dsx_magic)?;
         if b"3DSX" != &n3dsx_magic {
-            return Err(N3DSParsingError::FileMagicNotFound(
-                FileMagicNotFound::N3DSXMagicNotFound(n3dsx_magic),
-            ));
+            return Err(N3DSParsingError::FileMagicNotFound("3DSX", n3dsx_magic));
         }
 
         let mut header_size = [0u8; 2];
         f.read_exact(&mut header_size)?;
         let header_size = u16::from_le_bytes(header_size);
-        if !(header_size > 32) {
-            return Err(N3DSParsingError::N3DSXParsingError3DSXNoExtendedHeader { 0: header_size });
+        if header_size <= 32 {
+            return Err(N3DSParsingError::N3DSXParsingError3DSXNoExtendedHeader(
+                header_size,
+            ));
         }
 
         const N3DSX_EXTENDED_HEADER_OFFSET: u64 = 0x20;
@@ -169,7 +169,7 @@ impl SMDHIcon {
             CIAMetaSize::Present => 0x3AC0,
             _ => {
                 return Err(N3DSParsingError::CIAParsingError(
-                    CIAParsingError::MetaNotExpectedValue { 0: meta_size },
+                    CIAParsingError::MetaNotExpectedValue(meta_size),
                 ))
             }
         };
@@ -208,9 +208,7 @@ impl SMDHIcon {
         let mut cci_magic = [0u8; 4];
         f.read_exact(&mut cci_magic)?;
         if b"NCSD" != &cci_magic {
-            return Err(N3DSParsingError::FileMagicNotFound(
-                FileMagicNotFound::NCSDMagicNotFound(cci_magic),
-            ));
+            return Err(N3DSParsingError::FileMagicNotFound("NCSD", cci_magic));
         }
 
         const CCI_HEADER_PARTITION_TABLE_OFFSET: u64 = 0x120;
@@ -238,9 +236,7 @@ impl SMDHIcon {
         let mut cxi_magic = [0u8; 4];
         f.read_exact(&mut cxi_magic)?;
         if b"NCCH" != &cxi_magic {
-            return Err(N3DSParsingError::FileMagicNotFound(
-                FileMagicNotFound::NCCHMagicNotFound(cxi_magic),
-            ));
+            return Err(N3DSParsingError::FileMagicNotFound("NCCH", cxi_magic));
         }
 
         const CXI_HEADER_FLAGS_OFFSET: i64 = 0x188;
@@ -300,7 +296,7 @@ impl SMDHIcon {
 
         const EXEFS_HEADER_SIZE: i64 = 0x200;
         f.seek(SeekFrom::Current(
-            EXEFS_HEADER_SIZE + i64::try_from(icon_file.file_offset()).unwrap()
+            EXEFS_HEADER_SIZE + i64::from(icon_file.file_offset())
                 - EXEFS_HEADER_FILE_HEADERS_SIZE as i64,
         ))?;
         let smdh_icon = SMDHIcon::from_smdh(f)?;
@@ -325,7 +321,7 @@ impl TryFrom<u32> for CIAMetaSize {
             8 => Ok(CIAMetaSize::CVerUSA),
             0x200 => Ok(CIAMetaSize::Dummy),
             0x3AC0 => Ok(CIAMetaSize::Present),
-            _ => Err(Self::Error::MetaInvalidSize { 0: value }),
+            _ => Err(Self::Error::MetaInvalidSize(value)),
         }
     }
 }

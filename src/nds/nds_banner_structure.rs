@@ -65,7 +65,7 @@ impl TryFrom<u16> for NDSIconVersion {
             0x0002 => Ok(NDSIconVersion::V2),
             0x0003 => Ok(NDSIconVersion::V3),
             0x0103 => Ok(NDSIconVersion::DSi),
-            _ => Err(Self::Error::UnknownOrInvalidNDSIconVersion { 0: value }),
+            _ => Err(Self::Error::UnknownOrInvalidNDSIconVersion(value)),
         }
     }
 }
