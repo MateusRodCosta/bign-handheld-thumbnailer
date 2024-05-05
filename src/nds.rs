@@ -1,8 +1,9 @@
 mod nds_banner_structure;
 pub mod nds_parsing_errors;
 
+use crate::utils::Rgb888;
+
 use self::nds_parsing_errors::NDSParsingError;
-use super::utils::bgr555::Bgr555;
 use gdk_pixbuf::{Colorspace, Pixbuf};
 use nds_banner_structure::*;
 use std::io::{Read, Seek, SeekFrom};
@@ -48,12 +49,9 @@ pub fn extract_nds_banner<T: Read + Seek>(f: &mut T) -> Result<NDSBannerDetails,
 
 fn extract_palette_colors(palette_raw: &[u8; 0x20]) -> Vec<PaletteColor> {
     // this unwrap will never fail: there's even length input.
-    let colors_555 = palette_raw
+    let colors_converted = palette_raw
         .chunks_exact(2)
-        .map(|chunk| u16::from_le_bytes(chunk.try_into().unwrap()));
-
-    // this unwrap will never fail:
-    let colors_converted = colors_555.map(|color| Bgr555::try_from(color).unwrap());
+        .map(|chunk| Rgb888::from_bgr555_bytes(chunk.try_into().unwrap()));
 
     let mut palette_colors: Vec<PaletteColor> = colors_converted
         .map(|palette_color| {

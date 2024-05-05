@@ -3,7 +3,7 @@ use std::ffi::CStr;
 use std::io::{Read, Seek, SeekFrom};
 
 use crate::n3ds::n3ds_parsing_errors::*;
-use crate::utils::rgb565::Rgb565;
+use crate::utils::Rgb888;
 
 /*
  * Intially SMDH, 3DSX and CIA files were supported.
@@ -43,16 +43,13 @@ impl SMDHIcon {
         self.large_icon.clone()
     }
 
-    fn generate_pixbuf_from_bytes(
-        large_icon_bytes: [u8; 0x1200],
-    ) -> Result<Pixbuf, N3DSParsingError> {
-        let large_icon_data: Vec<Rgb565> = large_icon_bytes
+    fn generate_pixbuf_from_bytes(large_icon_bytes: [u8; 0x1200]) -> Option<Pixbuf> {
+        let large_icon_data: Vec<Rgb888> = large_icon_bytes
             .chunks_exact(2)
-            .map(|chunk| u16::from_le_bytes(chunk.try_into().unwrap()))
-            .map(|color| Rgb565::try_from(color))
-            .collect::<Result<Vec<_>, _>>()?;
+            .map(|chunk| Rgb888::from_rgb565_bytes(chunk.try_into().unwrap()))
+            .collect();
 
-        let pixbuf = Pixbuf::new(gdk_pixbuf::Colorspace::Rgb, true, 8, 48, 48).unwrap();
+        let pixbuf = Pixbuf::new(gdk_pixbuf::Colorspace::Rgb, true, 8, 48, 48)?;
 
         /*
          * The large 3DS icon is 48x48 px and divided in tiles according to Morton order
@@ -86,7 +83,7 @@ impl SMDHIcon {
             }
         }
 
-        Ok(pixbuf)
+        Some(pixbuf)
     }
 }
 
@@ -103,7 +100,9 @@ impl SMDHIcon {
         f.seek(SeekFrom::Current(0x24C0 - 0x04))?;
         let mut large_icon_bytes = [0u8; 0x1200];
         f.read_exact(&mut large_icon_bytes)?;
-        let large_icon = SMDHIcon::generate_pixbuf_from_bytes(large_icon_bytes)?;
+        let Some(large_icon) = SMDHIcon::generate_pixbuf_from_bytes(large_icon_bytes) else {
+            return Err(N3DSParsingError::UnableToExtractN3DSIcon);
+        };
         Ok(SMDHIcon { large_icon })
     }
 

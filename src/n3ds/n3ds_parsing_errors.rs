@@ -14,6 +14,8 @@ pub enum N3DSParsingError {
     CCIErrorGettingExecutableContentPartition,
     #[error(transparent)]
     CXIParsingError(#[from] CXIParsingError),
+    #[error("Unable to extract 3DS icon!")]
+    UnableToExtractN3DSIcon,
     #[error(transparent)]
     IOError(#[from] std::io::Error),
     #[error(transparent)]
