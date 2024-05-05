@@ -20,13 +20,13 @@ impl Rgb888 {
 }
 
 impl Rgb888 {
-    pub fn from_bgr555_bytes(color_bytes: [u8; 2]) -> Self {
+    pub fn from_bgr555_bytes(color_bytes: &[u8; 2]) -> Self {
         /*
          * The NDS palette uses BGR555 for color encoding but we need RGB888
          * So, each individual color must be isolated and converted to RGB888
          */
 
-        let color_bytes = u16::from_le_bytes(color_bytes);
+        let color_bytes = u16::from_le_bytes(*color_bytes);
 
         // Conversion code borrowed from
         // https://learn.microsoft.com/en-us/windows/win32/directshow/working-with-16-bit-rgb
@@ -43,14 +43,14 @@ impl Rgb888 {
         Rgb888 { r, g, b }
     }
 
-    pub fn from_rgb565_bytes(color_bytes: [u8; 2]) -> Self {
+    pub fn from_rgb565_bytes(color_bytes: &[u8; 2]) -> Self {
         /*
          * The 3DS icon usually uses BGR555 for color encoding, although others are also supported,
          * but we need RGB888
          * So, each individual color must be isolated and converted to RGB888
          */
 
-        let color_bytes = u16::from_le_bytes(color_bytes);
+        let color_bytes = u16::from_le_bytes(*color_bytes);
 
         // Conversion code borrowed from
         // https://learn.microsoft.com/en-us/windows/win32/directshow/working-with-16-bit-rgb

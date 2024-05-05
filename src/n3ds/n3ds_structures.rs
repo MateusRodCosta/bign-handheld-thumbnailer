@@ -43,7 +43,7 @@ impl SMDHIcon {
         self.large_icon.clone()
     }
 
-    fn generate_pixbuf_from_bytes(large_icon_bytes: [u8; 0x1200]) -> Option<Pixbuf> {
+    fn generate_pixbuf_from_bytes(large_icon_bytes: &[u8; 0x1200]) -> Option<Pixbuf> {
         let large_icon_data: Vec<Rgb888> = large_icon_bytes
             .chunks_exact(2)
             .map(|chunk| Rgb888::from_rgb565_bytes(chunk.try_into().unwrap()))
@@ -102,7 +102,7 @@ impl SMDHIcon {
         const SMDH_LARGE_ICON_SIZE: usize = 0x1200;
         let mut large_icon_bytes = [0u8; SMDH_LARGE_ICON_SIZE];
         f.read_exact(&mut large_icon_bytes)?;
-        let Some(large_icon) = SMDHIcon::generate_pixbuf_from_bytes(large_icon_bytes) else {
+        let Some(large_icon) = SMDHIcon::generate_pixbuf_from_bytes(&large_icon_bytes) else {
             return Err(N3DSParsingError::UnableToExtractN3DSIcon);
         };
         Ok(SMDHIcon { large_icon })
@@ -215,10 +215,15 @@ impl SMDHIcon {
         }
 
         const CCI_HEADER_PARTITION_TABLE_OFFSET: u64 = 0x120;
+        const CCI_HEADER_PARTITION_TABLE_SIZE: usize = 0x40;
         f.seek(SeekFrom::Start(CCI_HEADER_PARTITION_TABLE_OFFSET))?;
-        let partition_table = (0..8)
-            .map(|_| CCIPartition::from_data(f))
-            .collect::<Result<Vec<_>, _>>()?;
+        let mut partiton_table = [0u8; CCI_HEADER_PARTITION_TABLE_SIZE];
+        f.read_exact(&mut partiton_table)?;
+
+        let partition_table: Vec<CCIPartition> = partiton_table
+            .chunks_exact(8)
+            .map(|chunk| CCIPartition::from_bytes(chunk.try_into().unwrap()))
+            .collect();
         let Some(first_partition) = partition_table.first() else {
             return Err(N3DSParsingError::CCIErrorGettingExecutableContentPartition);
         };
@@ -276,8 +281,13 @@ impl SMDHIcon {
     }
 
     pub fn from_exefs<T: Read + Seek>(f: &mut T) -> Result<Self, N3DSParsingError> {
-        let file_headers: Vec<ExeFSFileHeader> = (0..10)
-            .map(|_| ExeFSFileHeader::from_data(f))
+        const EXEFS_HEADER_FILE_HEADERS_SIZE: usize = 0xA0;
+        let mut file_headers = [0u8; EXEFS_HEADER_FILE_HEADERS_SIZE];
+        f.read_exact(&mut file_headers)?;
+
+        let file_headers: Vec<ExeFSFileHeader> = file_headers
+            .chunks_exact(16)
+            .map(|chunk| ExeFSFileHeader::from_bytes(chunk.try_into().unwrap()))
             .collect::<Result<Vec<_>, _>>()?
             .into_iter()
             .flatten()
@@ -330,22 +340,17 @@ pub struct CCIPartition {
 }
 
 impl CCIPartition {
-    pub fn from_data<T: Read + Seek>(f: &mut T) -> Result<Self, N3DSParsingError> {
-        let mut offset = [0u8; 0x4];
-        f.read_exact(&mut offset)?;
-        let offset = u32::from_le_bytes(offset); //in media units
+    pub fn from_bytes(partition_bytes: &[u8; 8]) -> Self {
+        let offset = u32::from_le_bytes(partition_bytes[..4].try_into().unwrap()); //in media units
         let offset = offset * 0x200;
 
-        let mut length = [0u8; 0x4];
-        f.read_exact(&mut length)?;
-        let length = u32::from_le_bytes(length); //in media units
+        let length = u32::from_le_bytes(partition_bytes[4..].try_into().unwrap()); //in media units
         let length = length * 0x200;
 
-        let cci_partition = CCIPartition {
+        CCIPartition {
             offset,
             _length: length,
-        };
-        Ok(cci_partition)
+        }
     }
 
     pub fn offset(&self) -> u32 {
@@ -365,26 +370,23 @@ pub struct ExeFSFileHeader {
 }
 
 impl ExeFSFileHeader {
-    pub fn from_data<T: Read + Seek>(f: &mut T) -> Result<Option<Self>, N3DSParsingError> {
+    pub fn from_bytes(file_headers_bytes: &[u8; 16]) -> Result<Option<Self>, N3DSParsingError> {
         // Each header is composed of 16 bytes, if the header is empty it will be filled with zeroes
         // Therefore we can read it as a u128 and check if it's results in a zero as a small optimization
 
-        let mut file_header = [0u8; 16];
-        f.read_exact(&mut file_header)?;
-
-        let is_empty = u128::from_ne_bytes(file_header);
+        let is_empty = u128::from_ne_bytes(*file_headers_bytes);
         let is_empty = is_empty == 0;
         if is_empty {
             return Ok(None);
         }
 
-        let file_name = CStr::from_bytes_until_nul(&file_header[..8])
+        let file_name = CStr::from_bytes_until_nul(&file_headers_bytes[..8])
             .map_err(Box::from)?
             .to_str()
             .map_err(Box::from)?
             .to_owned();
-        let file_offset = u32::from_le_bytes(file_header[8..8 + 4].try_into().unwrap());
-        let file_size = u32::from_le_bytes(file_header[8 + 4..].try_into().unwrap());
+        let file_offset = u32::from_le_bytes(file_headers_bytes[8..8 + 4].try_into().unwrap());
+        let file_size = u32::from_le_bytes(file_headers_bytes[8 + 4..].try_into().unwrap());
 
         let exefs_file_header = ExeFSFileHeader {
             file_name,
