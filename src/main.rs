@@ -3,7 +3,7 @@ mod n3ds;
 mod nds;
 mod utils;
 
-use gdk_pixbuf::InterpType;
+use gdk_pixbuf::{InterpType, Pixbuf};
 use main_errors::*;
 use n3ds::n3ds_structures::SMDHIcon;
 use nds::extract_nds_banner;
@@ -13,7 +13,7 @@ use std::{path::Path, process::ExitCode};
 
 #[derive(Debug)]
 struct ThumbnailerArgs {
-    size: i32,
+    size: Option<i32>,
     input_file: std::path::PathBuf,
     output_file: std::path::PathBuf,
 }
@@ -40,7 +40,7 @@ fn main() -> ExitCode {
 fn get_thumbnailer_args(arguments: &Arguments) -> Result<ThumbnailerArgs, MainError> {
     let mut args = arguments.clone();
 
-    let size = args.value_from_str("-s")?;
+    let size = args.opt_value_from_str("-s")?;
     let input_file = args.free_from_str()?;
     let output_file = args.free_from_str()?;
 
@@ -86,12 +86,19 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), MainError> {
         _ => return Err(MainError::InvalidContentType { 0: content_type }),
     };
 
-    let pixbuf = match pixbuf.scale_simple(size, size, InterpType::Bilinear) {
-        Some(p) => p,
-        None => pixbuf,
+    let pixbuf = scale_pixbuf(pixbuf, size);
+    pixbuf.savev(output, "png", &[]).map_err(Box::from)?;
+    Ok(())
+}
+
+fn scale_pixbuf(pixbuf: Pixbuf, size: Option<i32>) -> Pixbuf {
+    if let Some(size) = size {
+        match pixbuf.scale_simple(size, size, InterpType::Bilinear) {
+            Some(scaled_pixbuf) => return scaled_pixbuf,
+            None => return pixbuf,
+        };
     };
 
-    pixbuf.savev(output, "png", &[]).map_err(Box::from)?;
-
-    Ok(())
+    // Unscaled Pixbuf if size is a None
+    pixbuf
 }
