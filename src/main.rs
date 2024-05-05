@@ -3,7 +3,7 @@ mod n3ds;
 mod nds;
 mod utils;
 
-use gdk_pixbuf::{InterpType, Pixbuf};
+use gdk_pixbuf::InterpType;
 use main_errors::*;
 use n3ds::n3ds_structures::SMDHIcon;
 use nds::extract_nds_banner;
@@ -129,19 +129,12 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), MainError> {
         }
     };
 
-    let pixbuf = scale_pixbuf(pixbuf, size);
+    // Whether to do optional scaling
+    let pixbuf = size
+        .map(|size| pixbuf.scale_simple(size, size, InterpType::Bilinear))
+        .flatten()
+        .unwrap_or(pixbuf);
+
     pixbuf.savev(output, "png", &[])?;
     Ok(())
-}
-
-fn scale_pixbuf(pixbuf: Pixbuf, size: Option<i32>) -> Pixbuf {
-    if let Some(size) = size {
-        match pixbuf.scale_simple(size, size, InterpType::Bilinear) {
-            Some(scaled_pixbuf) => return scaled_pixbuf,
-            None => return pixbuf,
-        };
-    };
-
-    // Unscaled Pixbuf if size is a None
-    pixbuf
 }
