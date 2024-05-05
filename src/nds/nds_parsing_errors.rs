@@ -6,6 +6,6 @@ pub enum NDSParsingError {
     UnknownOrInvalidNDSIconVersion(u16),
     #[error("Unable to extract NDS icon!")]
     UnableToExtractNDSIcon,
-    #[error(transparent)]
+    #[error("IO error: {0}")]
     IOError(#[from] std::io::Error),
 }

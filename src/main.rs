@@ -22,17 +22,16 @@ fn main() -> ExitCode {
     let args = Arguments::from_env();
 
     let args = match get_thumbnailer_args(&args) {
-        Ok(a) => a,
         Err(e) => {
             eprintln!("{}", e);
             return ExitCode::FAILURE;
         }
+        Ok(args) => args,
     };
-
     if let Err(e) = bign_handheld_thumbnailer(&args) {
-        eprintln!("bign-handheld-thumbnailer: {}", e);
+        eprintln!("{}", e);
         return ExitCode::FAILURE;
-    };
+    }
 
     ExitCode::SUCCESS
 }
@@ -57,7 +56,7 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), MainError> {
     let size = args.size;
 
     let content_type = utils::content_type_guess(Some(input), None);
-    let content_type = content_type.0.to_string();
+    let content_type = content_type.0.as_str();
 
     /* There are currently two supported file types:
      * .nds roms, indicated by the application/x-nintendo-ds-rom mime type
@@ -72,7 +71,7 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), MainError> {
     // for the Nintendo 3DS-related mime types as defined by the Citra emulator
 
     let mut input = File::open(input)?;
-    let pixbuf = match &content_type[..] {
+    let pixbuf = match content_type {
         "application/x-nintendo-ds-rom" => extract_nds_banner(&mut input)?.get_icon(),
         "application/x-ctr-cia" => SMDHIcon::from_cia(&mut input)?.get_large_icon(),
         "application/x-ctr-smdh" => SMDHIcon::from_smdh(&mut input)?.get_large_icon(),
@@ -83,11 +82,15 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), MainError> {
         "application/x-ctr-cci" | "application/x-nintendo-3ds-rom" => {
             SMDHIcon::from_cci(&mut input)?.get_large_icon()
         }
-        _ => return Err(MainError::InvalidContentType { 0: content_type }),
+        _ => {
+            return Err(MainError::InvalidContentType {
+                0: content_type.to_string(),
+            })
+        }
     };
 
     let pixbuf = scale_pixbuf(pixbuf, size);
-    pixbuf.savev(output, "png", &[]).map_err(Box::from)?;
+    pixbuf.savev(output, "png", &[])?;
     Ok(())
 }
 
