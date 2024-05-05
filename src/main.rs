@@ -1,10 +1,10 @@
-mod generic_errors;
+mod main_errors;
 mod n3ds;
 mod nds;
 mod utils;
 
 use gdk_pixbuf::InterpType;
-use generic_errors::*;
+use main_errors::*;
 use n3ds::n3ds_structures::SMDHIcon;
 use nds::extract_nds_banner;
 use pico_args::Arguments;
@@ -24,11 +24,7 @@ fn main() -> ExitCode {
     let args = match get_thumbnailer_args(&args) {
         Ok(a) => a,
         Err(e) => {
-            eprintln!(
-                concat!("bign-handheld-thumbnailer: {}\n", "Error: {}"),
-                ErrorParsingThumbnailerArguments { parsed_args: args },
-                e
-            );
+            eprintln!("{}", e);
             return ExitCode::FAILURE;
         }
     };
@@ -41,9 +37,7 @@ fn main() -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn get_thumbnailer_args(
-    arguments: &Arguments,
-) -> Result<ThumbnailerArgs, Box<dyn std::error::Error>> {
+fn get_thumbnailer_args(arguments: &Arguments) -> Result<ThumbnailerArgs, MainError> {
     let mut args = arguments.clone();
 
     let size = args.value_from_str("-s")?;
@@ -57,7 +51,7 @@ fn get_thumbnailer_args(
     })
 }
 
-fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), Box<dyn std::error::Error>> {
+fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), MainError> {
     let input = Path::new(&args.input_file);
     let output = Path::new(&args.output_file);
     let size = args.size;
@@ -89,7 +83,7 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), Box<dyn std::
         "application/x-ctr-cci" | "application/x-nintendo-3ds-rom" => {
             SMDHIcon::from_cci(&mut input)?.get_large_icon()
         }
-        _ => return Err(Box::new(InvalidContentType { content_type })),
+        _ => return Err(MainError::InvalidContentType { 0: content_type }),
     };
 
     let pixbuf = match pixbuf.scale_simple(size, size, InterpType::Bilinear) {
@@ -97,7 +91,7 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), Box<dyn std::
         None => pixbuf,
     };
 
-    pixbuf.savev(output, "png", &[])?;
+    pixbuf.savev(output, "png", &[]).map_err(Box::from)?;
 
     Ok(())
 }

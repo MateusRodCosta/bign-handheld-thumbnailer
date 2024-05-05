@@ -1,5 +1,5 @@
 mod nds_banner_structure;
-mod nds_parsing_errors;
+pub mod nds_parsing_errors;
 
 use self::nds_parsing_errors::NDSParsingError;
 use super::utils::bgr555::Bgr555;
