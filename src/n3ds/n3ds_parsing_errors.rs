@@ -18,8 +18,6 @@ pub enum N3DSParsingError {
     UnableToExtractN3DSIcon,
     #[error("IO error: {0}")]
     IOError(#[from] std::io::Error),
-    #[error(transparent)]
-    OtherError(#[from] Box<dyn std::error::Error>),
 }
 
 #[derive(Error, Debug)]

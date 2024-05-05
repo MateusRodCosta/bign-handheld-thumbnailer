@@ -1,5 +1,4 @@
 use gdk_pixbuf::Pixbuf;
-use std::ffi::CStr;
 use std::io::{Read, Seek, SeekFrom};
 
 use crate::n3ds::n3ds_parsing_errors::*;
@@ -185,8 +184,8 @@ impl SMDHIcon {
         let _meta_size_with_padding = meta_size.div_ceil(0x40) * 0x40;
         let content_size_with_padding = content_size.div_ceil(0x40) * 0x40;
 
-        const CIA_POST_HEADER_OFFSET: u64 = 0x2040;
-        let offset: u64 = CIA_POST_HEADER_OFFSET
+        const CIA_HEADER_SIZE: u64 = 0x2040;
+        let offset: u64 = CIA_HEADER_SIZE
             + u64::from(certificate_chain_size_with_padding)
             + u64::from(ticket_size_with_padding)
             + u64::from(tmd_size_with_padding)
@@ -293,18 +292,16 @@ impl SMDHIcon {
             .flatten()
             .collect();
 
-        let Some(icon_file) = file_headers.iter().find(|item| item.file_name() == "icon") else {
+        let Some(icon_file) = file_headers.iter().find(|item| item.file_name() == b"icon") else {
             return Err(N3DSParsingError::CXIParsingError(
                 CXIParsingError::ExeFSIconFileNotFound,
             ));
         };
 
-        const EXEFS_POST_HEADER_OFFSET: i64 = 0x200;
-        const EXEFS_HEADER_PSOT_FILE_HEADERS_OFFSET: i64 = 0xA0;
-
+        const EXEFS_HEADER_SIZE: i64 = 0x200;
         f.seek(SeekFrom::Current(
-            EXEFS_POST_HEADER_OFFSET + icon_file.file_offset() as i64
-                - EXEFS_HEADER_PSOT_FILE_HEADERS_OFFSET,
+            EXEFS_HEADER_SIZE + i64::try_from(icon_file.file_offset()).unwrap()
+                - EXEFS_HEADER_FILE_HEADERS_SIZE as i64,
         ))?;
         let smdh_icon = SMDHIcon::from_smdh(f)?;
         Ok(smdh_icon)
@@ -364,7 +361,7 @@ impl CCIPartition {
 
 #[derive(Debug, Clone)]
 pub struct ExeFSFileHeader {
-    file_name: String,
+    file_name: [u8; 8],
     file_offset: u32,
     _file_size: u32,
 }
@@ -380,11 +377,7 @@ impl ExeFSFileHeader {
             return Ok(None);
         }
 
-        let file_name = CStr::from_bytes_until_nul(&file_headers_bytes[..8])
-            .map_err(Box::from)?
-            .to_str()
-            .map_err(Box::from)?
-            .to_owned();
+        let file_name: [u8; 8] = file_headers_bytes[..8].try_into().unwrap();
         let file_offset = u32::from_le_bytes(file_headers_bytes[8..8 + 4].try_into().unwrap());
         let file_size = u32::from_le_bytes(file_headers_bytes[8 + 4..].try_into().unwrap());
 
@@ -396,8 +389,9 @@ impl ExeFSFileHeader {
         Ok(Some(exefs_file_header))
     }
 
-    pub fn file_name(&self) -> &str {
-        &self.file_name
+    pub fn file_name(&self) -> &[u8] {
+        let len = self.file_name.iter().position(|p| *p == b'\0').unwrap_or(8);
+        &self.file_name[..len]
     }
 
     pub fn file_offset(&self) -> u32 {
