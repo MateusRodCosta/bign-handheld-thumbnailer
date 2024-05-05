@@ -11,8 +11,20 @@ use pico_args::Arguments;
 use std::fs::File;
 use std::{path::Path, process::ExitCode};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct ThumbnailerArgs {
+    show_version: bool,
+    file_params: Option<ThumbnailerArgsFileParams>,
+}
+
+impl ThumbnailerArgs {
+    pub fn file_params(&self) -> Option<ThumbnailerArgsFileParams> {
+        self.file_params.clone()
+    }
+}
+
+#[derive(Debug, Clone)]
+struct ThumbnailerArgsFileParams {
     size: Option<i32>,
     input_file: std::path::PathBuf,
     output_file: std::path::PathBuf,
@@ -39,11 +51,27 @@ fn main() -> ExitCode {
 fn get_thumbnailer_args(arguments: &Arguments) -> Result<ThumbnailerArgs, MainError> {
     let mut args = arguments.clone();
 
+    let show_version = args.contains("--version");
+    let file_params = if !show_version {
+        Some(get_thumbnailer_args_file_params(&mut args)?)
+    } else {
+        None
+    };
+
+    Ok(ThumbnailerArgs {
+        show_version,
+        file_params,
+    })
+}
+
+fn get_thumbnailer_args_file_params(
+    args: &mut Arguments,
+) -> Result<ThumbnailerArgsFileParams, MainError> {
     let size = args.opt_value_from_str("-s")?;
     let input_file = args.free_from_str()?;
     let output_file = args.free_from_str()?;
 
-    Ok(ThumbnailerArgs {
+    Ok(ThumbnailerArgsFileParams {
         size,
         input_file,
         output_file,
@@ -51,9 +79,21 @@ fn get_thumbnailer_args(arguments: &Arguments) -> Result<ThumbnailerArgs, MainEr
 }
 
 fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), MainError> {
-    let input = Path::new(&args.input_file);
-    let output = Path::new(&args.output_file);
-    let size = args.size;
+    if args.show_version {
+        const NAME: &str = env!("CARGO_PKG_NAME");
+        const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+        println!("{} v{}", NAME, VERSION);
+
+        return Ok(());
+    }
+
+    // if it's not a `--version` command, then just extract the file params directly
+    let file_params = args.file_params().unwrap();
+
+    let input = Path::new(&file_params.input_file);
+    let output = Path::new(&file_params.output_file);
+    let size = file_params.size;
 
     let content_type = utils::content_type_guess(Some(input), None);
     let content_type = content_type.0.as_str();
