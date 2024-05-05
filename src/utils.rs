@@ -1,5 +1,5 @@
 use gio::ffi;
-use gio::glib::translate::*;
+use gio::glib::translate::{from_glib, from_glib_full, ToGlibPtr};
 
 pub struct Rgb888 {
     r: u8,
@@ -20,13 +20,13 @@ impl Rgb888 {
 }
 
 impl Rgb888 {
-    pub fn from_bgr555_bytes(color_bytes: &[u8; 2]) -> Self {
+    pub fn from_bgr555_bytes(color_bytes: [u8; 2]) -> Self {
         /*
          * The NDS palette uses BGR555 for color encoding but we need RGB888
          * So, each individual color must be isolated and converted to RGB888
          */
 
-        let color_bytes = u16::from_le_bytes(*color_bytes);
+        let color_bytes = u16::from_le_bytes(color_bytes);
 
         // Conversion code borrowed from
         // https://learn.microsoft.com/en-us/windows/win32/directshow/working-with-16-bit-rgb
@@ -43,14 +43,14 @@ impl Rgb888 {
         Rgb888 { r, g, b }
     }
 
-    pub fn from_rgb565_bytes(color_bytes: &[u8; 2]) -> Self {
+    pub fn from_rgb565_bytes(color_bytes: [u8; 2]) -> Self {
         /*
          * The 3DS icon usually uses BGR555 for color encoding, although others are also supported,
          * but we need RGB888
          * So, each individual color must be isolated and converted to RGB888
          */
 
-        let color_bytes = u16::from_le_bytes(*color_bytes);
+        let color_bytes = u16::from_le_bytes(color_bytes);
 
         // Conversion code borrowed from
         // https://learn.microsoft.com/en-us/windows/win32/directshow/working-with-16-bit-rgb
@@ -69,14 +69,18 @@ impl Rgb888 {
 
 // Workaround to https://github.com/gtk-rs/gtk-rs-core/issues/1257
 pub fn content_type_guess(
-    filename: Option<impl AsRef<std::path::Path>>,
+    filename: &Option<impl AsRef<std::path::Path>>,
     data: Option<&[u8]>,
 ) -> (gio::glib::GString, bool) {
-    let data_size = data.map(|d| d.len()).unwrap_or(0);
+    let data_size = data.map_or(0, <[u8]>::len);
     unsafe {
         let mut result_uncertain = std::mem::MaybeUninit::uninit();
         let ret = from_glib_full(ffi::g_content_type_guess(
-            filename.as_ref().map(|p| p.as_ref()).to_glib_none().0,
+            filename
+                .as_ref()
+                .map(std::convert::AsRef::as_ref)
+                .to_glib_none()
+                .0,
             data.to_glib_none().0,
             data_size as _,
             result_uncertain.as_mut_ptr(),

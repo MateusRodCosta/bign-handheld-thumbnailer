@@ -5,7 +5,7 @@ use crate::utils::Rgb888;
 
 use self::nds_parsing_errors::NDSParsingError;
 use gdk_pixbuf::{Colorspace, Pixbuf};
-use nds_banner_structure::*;
+use nds_banner_structure::{NDSBannerDetails, NDSIconVersion, PaletteColor};
 use std::io::{Read, Seek, SeekFrom};
 
 /*
@@ -20,15 +20,16 @@ use std::io::{Read, Seek, SeekFrom};
 */
 
 pub fn extract_nds_banner<T: Read + Seek>(f: &mut T) -> Result<NDSBannerDetails, NDSParsingError> {
-    f.seek(SeekFrom::Start(0x068))?;
+    const NDS_HEADER_BANNER_OFFSET_OFFSET: u64 = 0x068;
+    const NDS_BANNER_SIZE: usize = 0x240;
 
+    f.seek(SeekFrom::Start(NDS_HEADER_BANNER_OFFSET_OFFSET))?;
     let mut banner_offset = [0u8; 4];
     f.read_exact(&mut banner_offset)?;
     let banner_offset = u32::from_le_bytes(banner_offset);
 
-    f.seek(SeekFrom::Start(banner_offset as u64))?;
-    const BANNER_SIZE: usize = 0x240;
-    let mut banner_bytes = [0u8; BANNER_SIZE];
+    f.seek(SeekFrom::Start(u64::from(banner_offset)))?;
+    let mut banner_bytes = [0u8; NDS_BANNER_SIZE];
     f.read_exact(&mut banner_bytes)?;
 
     let icon_version = u16::from_le_bytes(banner_bytes[..2].try_into().unwrap());

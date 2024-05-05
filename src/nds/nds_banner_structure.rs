@@ -30,10 +30,6 @@ impl NDSBannerDetails {
         }
     }
 
-    pub fn _get_icon_version(&self) -> NDSIconVersion {
-        self._icon_version.clone()
-    }
-
     pub fn get_icon(&self) -> Pixbuf {
         self.icon.clone()
     }

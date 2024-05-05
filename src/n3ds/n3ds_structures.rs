@@ -1,7 +1,7 @@
 use gdk_pixbuf::Pixbuf;
 use std::io::{Read, Seek, SeekFrom};
 
-use crate::n3ds::n3ds_parsing_errors::*;
+use crate::n3ds::n3ds_parsing_errors::{CIAParsingError, CXIParsingError, N3DSParsingError};
 use crate::utils::Rgb888;
 
 /*
@@ -90,15 +90,16 @@ impl SMDHIcon {
 
 impl SMDHIcon {
     pub fn from_smdh<T: Read + Seek>(f: &mut T) -> Result<Self, N3DSParsingError> {
+        const SMDH_LARGE_ICON_OFFSET: i64 = 0x24C0;
+        const SMDH_LARGE_ICON_SIZE: usize = 0x1200;
+
         let mut smdh_magic = [0u8; 4];
         f.read_exact(&mut smdh_magic)?;
         if b"SMDH" != &smdh_magic {
             return Err(N3DSParsingError::FileMagicNotFound("SMDH", smdh_magic));
         }
 
-        const SMDH_LARGE_ICON_OFFSET: i64 = 0x24C0;
         f.seek(SeekFrom::Current(SMDH_LARGE_ICON_OFFSET - 4))?;
-        const SMDH_LARGE_ICON_SIZE: usize = 0x1200;
         let mut large_icon_bytes = [0u8; SMDH_LARGE_ICON_SIZE];
         f.read_exact(&mut large_icon_bytes)?;
         let Some(large_icon) = SMDHIcon::generate_pixbuf_from_bytes(&large_icon_bytes) else {
@@ -108,6 +109,8 @@ impl SMDHIcon {
     }
 
     pub fn from_n3dsx<T: Read + Seek>(f: &mut T) -> Result<Self, N3DSParsingError> {
+        const N3DSX_EXTENDED_HEADER_OFFSET: u64 = 0x20;
+
         let mut n3dsx_magic = [0u8; 4];
         f.read_exact(&mut n3dsx_magic)?;
         if b"3DSX" != &n3dsx_magic {
@@ -123,9 +126,7 @@ impl SMDHIcon {
             ));
         }
 
-        const N3DSX_EXTENDED_HEADER_OFFSET: u64 = 0x20;
         f.seek(SeekFrom::Start(N3DSX_EXTENDED_HEADER_OFFSET))?;
-
         let mut smdh_offset = [0u8; 4];
         f.read_exact(&mut smdh_offset)?;
         let smdh_offset = u32::from_le_bytes(smdh_offset);
@@ -147,6 +148,8 @@ impl SMDHIcon {
          */
 
         const CIA_HEADER_CERTIFICATE_CHAIN_SIZE_OFFSET: u64 = 0x08;
+        const CIA_HEADER_SIZE: u64 = 0x2040;
+
         f.seek(SeekFrom::Start(CIA_HEADER_CERTIFICATE_CHAIN_SIZE_OFFSET))?;
         let mut certificate_chain_size = [0u8; 4];
         f.read_exact(&mut certificate_chain_size)?;
@@ -184,7 +187,6 @@ impl SMDHIcon {
         let _meta_size_with_padding = meta_size.div_ceil(0x40) * 0x40;
         let content_size_with_padding = content_size.div_ceil(0x40) * 0x40;
 
-        const CIA_HEADER_SIZE: u64 = 0x2040;
         let offset: u64 = CIA_HEADER_SIZE
             + u64::from(certificate_chain_size_with_padding)
             + u64::from(ticket_size_with_padding)
@@ -204,20 +206,20 @@ impl SMDHIcon {
 
     pub fn from_cci<T: Read + Seek>(f: &mut T) -> Result<Self, N3DSParsingError> {
         const CCI_HEADER_MAGIC_OFFSET: u64 = 0x100;
+        const CCI_HEADER_PARTITION_TABLE_OFFSET: u64 = 0x120;
+        const CCI_HEADER_PARTITION_TABLE_SIZE: usize = 0x40;
+
         f.seek(SeekFrom::Start(CCI_HEADER_MAGIC_OFFSET))?;
         let mut cci_magic = [0u8; 4];
         f.read_exact(&mut cci_magic)?;
         if b"NCSD" != &cci_magic {
             return Err(N3DSParsingError::FileMagicNotFound("NCSD", cci_magic));
         }
-
-        const CCI_HEADER_PARTITION_TABLE_OFFSET: u64 = 0x120;
-        const CCI_HEADER_PARTITION_TABLE_SIZE: usize = 0x40;
         f.seek(SeekFrom::Start(CCI_HEADER_PARTITION_TABLE_OFFSET))?;
-        let mut partiton_table = [0u8; CCI_HEADER_PARTITION_TABLE_SIZE];
-        f.read_exact(&mut partiton_table)?;
+        let mut partition_table = [0u8; CCI_HEADER_PARTITION_TABLE_SIZE];
+        f.read_exact(&mut partition_table)?;
 
-        let partition_table: Vec<CCIPartition> = partiton_table
+        let partition_table: Vec<CCIPartition> = partition_table
             .chunks_exact(8)
             .map(|chunk| CCIPartition::from_bytes(chunk.try_into().unwrap()))
             .collect();
@@ -232,6 +234,9 @@ impl SMDHIcon {
 
     pub fn from_cxi<T: Read + Seek>(f: &mut T) -> Result<Self, N3DSParsingError> {
         const CXI_HEADER_MAGIC_OFFSET: i64 = 0x100;
+        const CXI_HEADER_FLAGS_OFFSET: i64 = 0x188;
+        const CXI_HEADER_EXEFS_OFFSET_VALUE: i64 = 0x1A0;
+
         f.seek(SeekFrom::Current(CXI_HEADER_MAGIC_OFFSET))?;
         let mut cxi_magic = [0u8; 4];
         f.read_exact(&mut cxi_magic)?;
@@ -239,7 +244,6 @@ impl SMDHIcon {
             return Err(N3DSParsingError::FileMagicNotFound("NCCH", cxi_magic));
         }
 
-        const CXI_HEADER_FLAGS_OFFSET: i64 = 0x188;
         f.seek(SeekFrom::Current(
             CXI_HEADER_FLAGS_OFFSET - (CXI_HEADER_MAGIC_OFFSET + 4),
         ))?;
@@ -253,7 +257,6 @@ impl SMDHIcon {
             ));
         }
 
-        const CXI_HEADER_EXEFS_OFFSET_VALUE: i64 = 0x1A0;
         f.seek(SeekFrom::Current(
             CXI_HEADER_EXEFS_OFFSET_VALUE - (CXI_HEADER_FLAGS_OFFSET + 8),
         ))?;
@@ -265,11 +268,9 @@ impl SMDHIcon {
 
         let mut exefs_size = [0u8; 4];
         f.read_exact(&mut exefs_size)?;
-        let exefs_size = u32::from_le_bytes(exefs_size); // in media units
-        let _exefs_size = exefs_size * 0x200;
 
         f.seek(SeekFrom::Current(
-            exefs_offset as i64 - (CXI_HEADER_EXEFS_OFFSET_VALUE + 4 + 4),
+            i64::from(exefs_offset) - (CXI_HEADER_EXEFS_OFFSET_VALUE + 4 + 4),
         ))?;
         let smdh_icon = SMDHIcon::from_exefs(f)?;
         Ok(smdh_icon)
@@ -277,15 +278,14 @@ impl SMDHIcon {
 
     pub fn from_exefs<T: Read + Seek>(f: &mut T) -> Result<Self, N3DSParsingError> {
         const EXEFS_HEADER_FILE_HEADERS_SIZE: usize = 0xA0;
+        const EXEFS_HEADER_SIZE: i64 = 0x200;
+
         let mut file_headers = [0u8; EXEFS_HEADER_FILE_HEADERS_SIZE];
         f.read_exact(&mut file_headers)?;
 
         let file_headers: Vec<ExeFSFileHeader> = file_headers
             .chunks_exact(16)
-            .map(|chunk| ExeFSFileHeader::from_bytes(chunk.try_into().unwrap()))
-            .collect::<Result<Vec<_>, _>>()?
-            .into_iter()
-            .flatten()
+            .filter_map(|chunk| ExeFSFileHeader::from_bytes(chunk.try_into().unwrap()))
             .collect();
 
         let Some(icon_file) = file_headers.iter().find(|item| item.file_name() == b"icon") else {
@@ -294,10 +294,9 @@ impl SMDHIcon {
             ));
         };
 
-        const EXEFS_HEADER_SIZE: i64 = 0x200;
         f.seek(SeekFrom::Current(
             EXEFS_HEADER_SIZE + i64::from(icon_file.file_offset())
-                - EXEFS_HEADER_FILE_HEADERS_SIZE as i64,
+                - i64::try_from(EXEFS_HEADER_FILE_HEADERS_SIZE).unwrap(),
         ))?;
         let smdh_icon = SMDHIcon::from_smdh(f)?;
         Ok(smdh_icon)
@@ -333,7 +332,7 @@ pub struct CCIPartition {
 }
 
 impl CCIPartition {
-    pub fn from_bytes(partition_bytes: &[u8; 8]) -> Self {
+    pub fn from_bytes(partition_bytes: [u8; 8]) -> Self {
         let offset = u32::from_le_bytes(partition_bytes[..4].try_into().unwrap()); //in media units
         let offset = offset * 0x200;
 
@@ -349,10 +348,6 @@ impl CCIPartition {
     pub fn offset(&self) -> u32 {
         self.offset
     }
-
-    pub fn _length(&self) -> u32 {
-        self._length
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -363,14 +358,14 @@ pub struct ExeFSFileHeader {
 }
 
 impl ExeFSFileHeader {
-    pub fn from_bytes(file_headers_bytes: &[u8; 16]) -> Result<Option<Self>, N3DSParsingError> {
+    pub fn from_bytes(file_headers_bytes: &[u8; 16]) -> Option<Self> {
         // Each header is composed of 16 bytes, if the header is empty it will be filled with zeroes
         // Therefore we can read it as a u128 and check if it's results in a zero as a small optimization
 
         let is_empty = u128::from_ne_bytes(*file_headers_bytes);
         let is_empty = is_empty == 0;
         if is_empty {
-            return Ok(None);
+            return None;
         }
 
         let file_name: [u8; 8] = file_headers_bytes[..8].try_into().unwrap();
@@ -382,7 +377,7 @@ impl ExeFSFileHeader {
             file_offset,
             _file_size: file_size,
         };
-        Ok(Some(exefs_file_header))
+        Some(exefs_file_header)
     }
 
     pub fn file_name(&self) -> &[u8] {
@@ -392,9 +387,5 @@ impl ExeFSFileHeader {
 
     pub fn file_offset(&self) -> u32 {
         self.file_offset
-    }
-
-    pub fn _file_size(&self) -> u32 {
-        self._file_size
     }
 }

@@ -4,7 +4,7 @@ mod nds;
 mod utils;
 
 use gdk_pixbuf::InterpType;
-use main_errors::*;
+use main_errors::MainError;
 use n3ds::n3ds_structures::SMDHIcon;
 use nds::extract_nds_banner;
 use pico_args::Arguments;
@@ -35,13 +35,13 @@ fn main() -> ExitCode {
 
     let args = match get_thumbnailer_args(&args) {
         Err(e) => {
-            eprintln!("{}", e);
+            eprintln!("{e}");
             return ExitCode::FAILURE;
         }
         Ok(args) => args,
     };
     if let Err(e) = bign_handheld_thumbnailer(&args) {
-        eprintln!("{}", e);
+        eprintln!("{e}");
         return ExitCode::FAILURE;
     }
 
@@ -52,10 +52,10 @@ fn get_thumbnailer_args(arguments: &Arguments) -> Result<ThumbnailerArgs, MainEr
     let mut args = arguments.clone();
 
     let show_version = args.contains("--version");
-    let file_params = if !show_version {
-        Some(get_thumbnailer_args_file_params(&mut args)?)
-    } else {
+    let file_params = if show_version {
         None
+    } else {
+        Some(get_thumbnailer_args_file_params(&mut args)?)
     };
 
     Ok(ThumbnailerArgs {
@@ -83,7 +83,7 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), MainError> {
         const NAME: &str = env!("CARGO_PKG_NAME");
         const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-        println!("{} v{}", NAME, VERSION);
+        println!("{NAME} v{VERSION}");
 
         return Ok(());
     }
@@ -95,7 +95,7 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), MainError> {
     let output = Path::new(&file_params.output_file);
     let size = file_params.size;
 
-    let content_type = utils::content_type_guess(Some(input), None);
+    let content_type = utils::content_type_guess(&Some(input), None);
     let content_type = content_type.0.as_str();
 
     /* There are currently two supported file types:
