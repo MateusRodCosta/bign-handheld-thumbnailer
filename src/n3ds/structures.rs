@@ -1,7 +1,7 @@
 use gdk_pixbuf::Pixbuf;
 use std::io::{Read, Seek, SeekFrom};
 
-use crate::n3ds::n3ds_parsing_errors::{CIAParsingError, CXIParsingError, N3DSParsingError};
+use crate::n3ds::errors::ParsingError;
 use crate::utils::Rgb888;
 
 /*
@@ -89,39 +89,39 @@ impl SMDHIcon {
 }
 
 impl SMDHIcon {
-    pub fn from_smdh<T: Read + Seek>(f: &mut T) -> Result<Self, N3DSParsingError> {
+    pub fn from_smdh<T: Read + Seek>(f: &mut T) -> Result<Self, ParsingError> {
         const SMDH_LARGE_ICON_OFFSET: i64 = 0x24C0;
         const SMDH_LARGE_ICON_SIZE: usize = 0x1200;
 
         let mut smdh_magic = [0u8; 4];
         f.read_exact(&mut smdh_magic)?;
         if b"SMDH" != &smdh_magic {
-            return Err(N3DSParsingError::FileMagicNotFound("SMDH", smdh_magic));
+            return Err(ParsingError::FileMagicNotFound("SMDH", smdh_magic));
         }
 
         f.seek(SeekFrom::Current(SMDH_LARGE_ICON_OFFSET - 4))?;
         let mut large_icon_bytes = [0u8; SMDH_LARGE_ICON_SIZE];
         f.read_exact(&mut large_icon_bytes)?;
         let Some(large_icon) = SMDHIcon::generate_pixbuf_from_bytes(&large_icon_bytes) else {
-            return Err(N3DSParsingError::UnableToExtractN3DSIcon);
+            return Err(ParsingError::UnableToExtractN3DSIcon);
         };
         Ok(SMDHIcon { large_icon })
     }
 
-    pub fn from_n3dsx<T: Read + Seek>(f: &mut T) -> Result<Self, N3DSParsingError> {
+    pub fn from_n3dsx<T: Read + Seek>(f: &mut T) -> Result<Self, ParsingError> {
         const N3DSX_EXTENDED_HEADER_OFFSET: u64 = 0x20;
 
         let mut n3dsx_magic = [0u8; 4];
         f.read_exact(&mut n3dsx_magic)?;
         if b"3DSX" != &n3dsx_magic {
-            return Err(N3DSParsingError::FileMagicNotFound("3DSX", n3dsx_magic));
+            return Err(ParsingError::FileMagicNotFound("3DSX", n3dsx_magic));
         }
 
         let mut header_size = [0u8; 2];
         f.read_exact(&mut header_size)?;
         let header_size = u16::from_le_bytes(header_size);
         if header_size <= 32 {
-            return Err(N3DSParsingError::N3DSXParsingError3DSXNoExtendedHeader(
+            return Err(ParsingError::N3DSXParsingError3DSXNoExtendedHeader(
                 header_size,
             ));
         }
@@ -140,7 +140,7 @@ impl SMDHIcon {
         Ok(smdh_icon)
     }
 
-    pub fn from_cia<T: Read + Seek>(f: &mut T) -> Result<Self, N3DSParsingError> {
+    pub fn from_cia<T: Read + Seek>(f: &mut T) -> Result<Self, ParsingError> {
         /*
          * The meta section isn't in a fixed place and is located after a bunch of sections whose
          * size can vary, therefore it's needed to at the very last fetch the other sizes and
@@ -170,11 +170,7 @@ impl SMDHIcon {
         let meta_size = CIAMetaSize::try_from(meta_size)?;
         let meta_size: u32 = match meta_size {
             CIAMetaSize::Present => 0x3AC0,
-            _ => {
-                return Err(N3DSParsingError::CIAParsingError(
-                    CIAParsingError::MetaNotExpectedValue(meta_size),
-                ))
-            }
+            _ => return Err(ParsingError::CIAMetaNotExpectedValue(meta_size)),
         };
 
         let mut content_size = [0u8; 8];
@@ -197,14 +193,14 @@ impl SMDHIcon {
         Ok(smdh_icon)
     }
 
-    pub fn from_cia_meta<T: Read + Seek>(f: &mut T) -> Result<Self, N3DSParsingError> {
+    pub fn from_cia_meta<T: Read + Seek>(f: &mut T) -> Result<Self, ParsingError> {
         const CIA_META_SMDH_OFFSET: i64 = 0x400;
         f.seek(SeekFrom::Current(CIA_META_SMDH_OFFSET))?;
         let smdh_icon = SMDHIcon::from_smdh(f)?;
         Ok(smdh_icon)
     }
 
-    pub fn from_cci<T: Read + Seek>(f: &mut T) -> Result<Self, N3DSParsingError> {
+    pub fn from_cci<T: Read + Seek>(f: &mut T) -> Result<Self, ParsingError> {
         const CCI_HEADER_MAGIC_OFFSET: u64 = 0x100;
         const CCI_HEADER_PARTITION_TABLE_OFFSET: u64 = 0x120;
         const CCI_HEADER_PARTITION_TABLE_SIZE: usize = 0x40;
@@ -213,7 +209,7 @@ impl SMDHIcon {
         let mut cci_magic = [0u8; 4];
         f.read_exact(&mut cci_magic)?;
         if b"NCSD" != &cci_magic {
-            return Err(N3DSParsingError::FileMagicNotFound("NCSD", cci_magic));
+            return Err(ParsingError::FileMagicNotFound("NCSD", cci_magic));
         }
         f.seek(SeekFrom::Start(CCI_HEADER_PARTITION_TABLE_OFFSET))?;
         let mut partition_table = [0u8; CCI_HEADER_PARTITION_TABLE_SIZE];
@@ -224,7 +220,7 @@ impl SMDHIcon {
             .map(|chunk| CCIPartition::from_bytes(chunk.try_into().unwrap()))
             .collect();
         let Some(first_partition) = partition_table.first() else {
-            return Err(N3DSParsingError::CCIErrorGettingExecutableContentPartition);
+            return Err(ParsingError::CCIErrorGettingExecutableContentPartition);
         };
 
         f.seek(SeekFrom::Start(first_partition.offset().into()))?;
@@ -232,7 +228,7 @@ impl SMDHIcon {
         Ok(smdh_icon)
     }
 
-    pub fn from_cxi<T: Read + Seek>(f: &mut T) -> Result<Self, N3DSParsingError> {
+    pub fn from_cxi<T: Read + Seek>(f: &mut T) -> Result<Self, ParsingError> {
         const CXI_HEADER_MAGIC_OFFSET: i64 = 0x100;
         const CXI_HEADER_FLAGS_OFFSET: i64 = 0x188;
         const CXI_HEADER_EXEFS_OFFSET_VALUE: i64 = 0x1A0;
@@ -241,7 +237,7 @@ impl SMDHIcon {
         let mut cxi_magic = [0u8; 4];
         f.read_exact(&mut cxi_magic)?;
         if b"NCCH" != &cxi_magic {
-            return Err(N3DSParsingError::FileMagicNotFound("NCCH", cxi_magic));
+            return Err(ParsingError::FileMagicNotFound("NCCH", cxi_magic));
         }
 
         f.seek(SeekFrom::Current(
@@ -252,9 +248,7 @@ impl SMDHIcon {
         let flags_index_7 = flags[7];
         let is_no_crypto = (flags_index_7 & 0x4) == 0x4;
         if !is_no_crypto {
-            return Err(N3DSParsingError::CXIParsingError(
-                CXIParsingError::FileEncrypted,
-            ));
+            return Err(ParsingError::CXIFileEncrypted);
         }
 
         f.seek(SeekFrom::Current(
@@ -276,7 +270,7 @@ impl SMDHIcon {
         Ok(smdh_icon)
     }
 
-    pub fn from_exefs<T: Read + Seek>(f: &mut T) -> Result<Self, N3DSParsingError> {
+    pub fn from_exefs<T: Read + Seek>(f: &mut T) -> Result<Self, ParsingError> {
         const EXEFS_HEADER_FILE_HEADERS_SIZE: usize = 0xA0;
         const EXEFS_HEADER_SIZE: i64 = 0x200;
 
@@ -289,9 +283,7 @@ impl SMDHIcon {
             .collect();
 
         let Some(icon_file) = file_headers.iter().find(|item| item.file_name() == b"icon") else {
-            return Err(N3DSParsingError::CXIParsingError(
-                CXIParsingError::ExeFSIconFileNotFound,
-            ));
+            return Err(ParsingError::CXIExeFSIconFileNotFound);
         };
 
         f.seek(SeekFrom::Current(
@@ -312,7 +304,7 @@ pub enum CIAMetaSize {
 }
 
 impl TryFrom<u32> for CIAMetaSize {
-    type Error = CIAParsingError;
+    type Error = ParsingError;
 
     fn try_from(value: u32) -> Result<Self, Self::Error> {
         match value {
@@ -320,7 +312,7 @@ impl TryFrom<u32> for CIAMetaSize {
             8 => Ok(CIAMetaSize::CVerUSA),
             0x200 => Ok(CIAMetaSize::Dummy),
             0x3AC0 => Ok(CIAMetaSize::Present),
-            _ => Err(Self::Error::MetaInvalidSize(value)),
+            _ => Err(Self::Error::CIAMetaInvalidSize(value)),
         }
     }
 }

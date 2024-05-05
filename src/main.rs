@@ -5,7 +5,7 @@ mod utils;
 
 use gdk_pixbuf::InterpType;
 use main_errors::MainError;
-use n3ds::n3ds_structures::SMDHIcon;
+use n3ds::structures::SMDHIcon;
 use nds::extract_nds_banner;
 use pico_args::Arguments;
 use std::fs::File;

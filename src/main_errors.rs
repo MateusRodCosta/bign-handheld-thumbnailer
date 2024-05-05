@@ -1,7 +1,7 @@
 use thiserror::Error;
 
-use crate::n3ds::n3ds_parsing_errors::N3DSParsingError;
-use crate::nds::nds_parsing_errors::NDSParsingError;
+use crate::n3ds;
+use crate::nds;
 
 #[derive(Error, Debug)]
 pub enum MainError {
@@ -14,7 +14,7 @@ pub enum MainError {
     #[error("GLib eror: {0}")]
     GlibError(#[from] gio::glib::Error),
     #[error("NDS format parsing error: {0}")]
-    NDSParsingError(#[from] NDSParsingError),
+    NDSParsingError(#[from] nds::errors::ParsingError),
     #[error("3DS format parsing error: {0}")]
-    N3DSParsingError(#[from] N3DSParsingError),
+    N3DSParsingError(#[from] n3ds::errors::ParsingError),
 }

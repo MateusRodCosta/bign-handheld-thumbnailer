@@ -1,6 +1,6 @@
 use gdk_pixbuf::Pixbuf;
 
-use super::NDSParsingError;
+use super::ParsingError;
 
 #[derive(Debug, Clone)]
 pub struct PaletteColor {
@@ -53,7 +53,7 @@ pub enum NDSIconVersion {
 }
 
 impl TryFrom<u16> for NDSIconVersion {
-    type Error = NDSParsingError;
+    type Error = ParsingError;
 
     fn try_from(value: u16) -> Result<Self, Self::Error> {
         match value {

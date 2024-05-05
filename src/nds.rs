@@ -1,12 +1,12 @@
-mod nds_banner_structure;
-pub mod nds_parsing_errors;
+pub mod errors;
+mod structures;
 
 use crate::utils::Rgb888;
 
-use self::nds_parsing_errors::NDSParsingError;
+use self::errors::ParsingError;
 use gdk_pixbuf::{Colorspace, Pixbuf};
-use nds_banner_structure::{NDSBannerDetails, NDSIconVersion, PaletteColor};
 use std::io::{Read, Seek, SeekFrom};
+use structures::{NDSBannerDetails, NDSIconVersion, PaletteColor};
 
 /*
  * Consider the following links for more info about the .nds file structure:
@@ -19,7 +19,7 @@ use std::io::{Read, Seek, SeekFrom};
  * as the thumbnailer specification doesn't support animations.
 */
 
-pub fn extract_nds_banner<T: Read + Seek>(f: &mut T) -> Result<NDSBannerDetails, NDSParsingError> {
+pub fn extract_nds_banner<T: Read + Seek>(f: &mut T) -> Result<NDSBannerDetails, ParsingError> {
     const NDS_HEADER_BANNER_OFFSET_OFFSET: u64 = 0x068;
     const NDS_BANNER_SIZE: usize = 0x240;
 
@@ -40,7 +40,7 @@ pub fn extract_nds_banner<T: Read + Seek>(f: &mut T) -> Result<NDSBannerDetails,
     let palette = extract_palette_colors(palette_bytes);
 
     let Some(pixbuf) = generate_nds_pixbuf(logo_bytes, &palette) else {
-        return Err(NDSParsingError::UnableToExtractNDSIcon);
+        return Err(ParsingError::UnableToExtractNDSIcon);
     };
 
     let banner_details = NDSBannerDetails::new(icon_version, pixbuf);
