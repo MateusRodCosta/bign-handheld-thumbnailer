@@ -43,10 +43,12 @@ impl SMDHIcon {
     }
 
     fn generate_pixbuf_from_bytes(large_icon_bytes: &[u8; 0x1200]) -> Option<Pixbuf> {
-        let large_icon_data: Vec<Rgb888> = large_icon_bytes
+        let large_icon_data: [Rgb888; 0x1200 / 2] = large_icon_bytes
             .chunks_exact(2)
             .map(|chunk| Rgb888::from_rgb565_bytes(chunk.try_into().unwrap()))
-            .collect();
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap();
 
         let pixbuf = Pixbuf::new(gdk_pixbuf::Colorspace::Rgb, true, 8, 48, 48)?;
 
@@ -215,10 +217,12 @@ impl SMDHIcon {
         let mut partition_table = [0u8; CCI_HEADER_PARTITION_TABLE_SIZE];
         f.read_exact(&mut partition_table)?;
 
-        let partition_table: Vec<CCIPartition> = partition_table
+        let partition_table: [CCIPartition; CCI_HEADER_PARTITION_TABLE_SIZE / 8] = partition_table
             .chunks_exact(8)
             .map(|chunk| CCIPartition::from_bytes(chunk.try_into().unwrap()))
-            .collect();
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap();
         let Some(first_partition) = partition_table.first() else {
             return Err(ParsingError::CCIErrorGettingExecutableContentPartition);
         };
@@ -276,12 +280,10 @@ impl SMDHIcon {
 
         let mut file_headers = [0u8; EXEFS_HEADER_FILE_HEADERS_SIZE];
         f.read_exact(&mut file_headers)?;
-
         let file_headers: Vec<ExeFSFileHeader> = file_headers
             .chunks_exact(16)
             .filter_map(|chunk| ExeFSFileHeader::from_bytes(chunk.try_into().unwrap()))
             .collect();
-
         let Some(icon_file) = file_headers.iter().find(|item| item.file_name() == b"icon") else {
             return Err(ParsingError::CXIExeFSIconFileNotFound);
         };

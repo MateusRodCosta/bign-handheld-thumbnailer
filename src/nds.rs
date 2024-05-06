@@ -48,13 +48,13 @@ pub fn extract_nds_banner<T: Read + Seek>(f: &mut T) -> Result<NDSBannerDetails,
     Ok(banner_details)
 }
 
-fn extract_palette_colors(palette_raw: &[u8; 0x20]) -> Vec<PaletteColor> {
+fn extract_palette_colors(palette_raw: &[u8; 0x20]) -> [PaletteColor; 0x20 / 2] {
     // this unwrap will never fail: there's even length input.
     let colors_converted = palette_raw
         .chunks_exact(2)
         .map(|chunk| Rgb888::from_bgr555_bytes(chunk.try_into().unwrap()));
 
-    let mut palette_colors: Vec<PaletteColor> = colors_converted
+    let mut palette_colors: [PaletteColor; 0x20 / 2] = colors_converted
         .map(|palette_color| {
             PaletteColor::new(
                 palette_color.r(),
@@ -63,7 +63,9 @@ fn extract_palette_colors(palette_raw: &[u8; 0x20]) -> Vec<PaletteColor> {
                 0xFF,
             )
         })
-        .collect();
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap();
     palette_colors[0] = PaletteColor {
         a: 0x00,
         ..palette_colors[0]
