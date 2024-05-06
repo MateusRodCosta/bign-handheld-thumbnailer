@@ -86,7 +86,7 @@ fn generate_nds_icon(
      * https://gitlab.gnome.org/GNOME/gnome-nds-thumbnailer/-/blob/master/gnome-nds-thumbnailer.c?ref_type=heads#L73
      */
 
-    let mut img: ImageBuffer<Rgba<u8>, Vec<u8>> = RgbaImage::new(32, 32);
+    let mut img = RgbaImage::new(32, 32);
 
     let mut pos = 0;
     for j in 0..4 {
