@@ -4,7 +4,7 @@ mod structures;
 use crate::utils::Rgb888;
 
 use self::errors::ParsingError;
-use gdk_pixbuf::{Colorspace, Pixbuf};
+use image::{ImageBuffer, Rgba, RgbaImage};
 use std::io::{Read, Seek, SeekFrom};
 use structures::{NDSBannerDetails, NDSIconVersion, PaletteColor};
 
@@ -39,12 +39,8 @@ pub fn extract_nds_banner<T: Read + Seek>(f: &mut T) -> Result<NDSBannerDetails,
     let palette_bytes: &[u8; 0x20] = &banner_bytes[0x220..0x240].try_into().unwrap();
     let palette = extract_palette_colors(palette_bytes);
 
-    let Some(pixbuf) = generate_nds_pixbuf(logo_bytes, &palette) else {
-        return Err(ParsingError::UnableToExtractNDSIcon);
-    };
-
-    let banner_details = NDSBannerDetails::new(icon_version, pixbuf);
-
+    let banner_details =
+        NDSBannerDetails::new(icon_version, generate_nds_icon(logo_bytes, &palette));
     Ok(banner_details)
 }
 
@@ -74,9 +70,10 @@ fn extract_palette_colors(palette_raw: &[u8; 0x20]) -> [PaletteColor; 0x20 / 2] 
     palette_colors
 }
 
-fn generate_nds_pixbuf(logo_data: &[u8; 0x200], palette: &[PaletteColor]) -> Option<Pixbuf> {
-    let pixbuf = Pixbuf::new(Colorspace::Rgb, true, 8, 32, 32)?;
-
+fn generate_nds_icon(
+    logo_data: &[u8; 0x200],
+    palette: &[PaletteColor],
+) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
     /*
      * The NDS icon is 32x32 px divided into 8x8 tiles
      * Each byte in the logo data represents the color data for 2 pixels:
@@ -89,6 +86,8 @@ fn generate_nds_pixbuf(logo_data: &[u8; 0x200], palette: &[PaletteColor]) -> Opt
      * https://gitlab.gnome.org/GNOME/gnome-nds-thumbnailer/-/blob/master/gnome-nds-thumbnailer.c?ref_type=heads#L73
      */
 
+    let mut img: ImageBuffer<Rgba<u8>, Vec<u8>> = RgbaImage::new(32, 32);
+
     let mut pos = 0;
     for j in 0..4 {
         for i in 0..4 {
@@ -96,17 +95,18 @@ fn generate_nds_pixbuf(logo_data: &[u8; 0x200], palette: &[PaletteColor]) -> Opt
                 for x in 0..4 {
                     let lower_index = usize::from(logo_data[pos] & 0x0F);
                     let lower = &palette[lower_index];
-                    pixbuf.put_pixel(x * 2 + 8 * i, y + 8 * j, lower.r, lower.g, lower.b, lower.a);
+                    img.put_pixel(
+                        x * 2 + 8 * i,
+                        y + 8 * j,
+                        Rgba([lower.r, lower.g, lower.b, lower.a]),
+                    );
 
                     let upper_index = usize::from((logo_data[pos] & 0xF0) >> 4);
                     let upper = &palette[upper_index];
-                    pixbuf.put_pixel(
+                    img.put_pixel(
                         x * 2 + 1 + 8 * i,
                         y + 8 * j,
-                        upper.r,
-                        upper.g,
-                        upper.b,
-                        upper.a,
+                        Rgba([upper.r, upper.g, upper.b, upper.a]),
                     );
 
                     pos += 1;
@@ -115,5 +115,5 @@ fn generate_nds_pixbuf(logo_data: &[u8; 0x200], palette: &[PaletteColor]) -> Opt
         }
     }
 
-    Some(pixbuf)
+    img
 }

@@ -1,4 +1,4 @@
-use gdk_pixbuf::Pixbuf;
+use image::{ImageBuffer, Rgba};
 
 use super::ParsingError;
 
@@ -19,18 +19,21 @@ impl PaletteColor {
 #[derive(Debug, Clone)]
 pub struct NDSBannerDetails {
     _icon_version: NDSIconVersion,
-    icon: Pixbuf,
+    icon: ImageBuffer<Rgba<u8>, Vec<u8>>,
 }
 
 impl NDSBannerDetails {
-    pub fn new(icon_version: NDSIconVersion, icon: Pixbuf) -> NDSBannerDetails {
+    pub fn new(
+        icon_version: NDSIconVersion,
+        icon: ImageBuffer<Rgba<u8>, Vec<u8>>,
+    ) -> NDSBannerDetails {
         NDSBannerDetails {
             _icon_version: icon_version,
             icon,
         }
     }
 
-    pub fn get_icon(&self) -> Pixbuf {
+    pub fn get_icon(&self) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
         self.icon.clone()
     }
 }

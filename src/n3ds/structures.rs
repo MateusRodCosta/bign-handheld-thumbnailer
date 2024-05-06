@@ -1,5 +1,6 @@
-use gdk_pixbuf::Pixbuf;
 use std::io::{Read, Seek, SeekFrom};
+
+use image::{ImageBuffer, Rgba, RgbaImage};
 
 use crate::n3ds::errors::ParsingError;
 use crate::utils::Rgb888;
@@ -34,23 +35,23 @@ use crate::utils::Rgb888;
 
 #[derive(Debug, Clone)]
 pub struct SMDHIcon {
-    large_icon: Pixbuf,
+    large_icon: ImageBuffer<Rgba<u8>, Vec<u8>>,
 }
 
 impl SMDHIcon {
-    pub fn get_large_icon(&self) -> Pixbuf {
+    pub fn get_large_icon(&self) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
         self.large_icon.clone()
     }
 
-    fn generate_pixbuf_from_bytes(large_icon_bytes: &[u8; 0x1200]) -> Option<Pixbuf> {
+    fn generate_icon_from_bytes(
+        large_icon_bytes: &[u8; 0x1200],
+    ) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
         let large_icon_data: [Rgb888; 0x1200 / 2] = large_icon_bytes
             .chunks_exact(2)
             .map(|chunk| Rgb888::from_rgb565_bytes(chunk.try_into().unwrap()))
             .collect::<Vec<_>>()
             .try_into()
             .unwrap();
-
-        let pixbuf = Pixbuf::new(gdk_pixbuf::Colorspace::Rgb, true, 8, 48, 48)?;
 
         /*
          * The large 3DS icon is 48x48 px and divided in tiles according to Morton order
@@ -61,6 +62,8 @@ impl SMDHIcon {
          * Due to the Morton order, the code for the coordinates of the pixels is oxided from
          * https://github.com/GEMISIS/SMDH-Creator/blob/master/SMDH-Creator/SMDH.cs#L255
          */
+
+        let mut img = RgbaImage::new(48, 48);
 
         let tile_order = [
             0, 1, 8, 9, 2, 3, 10, 11, 16, 17, 24, 25, 18, 19, 26, 27, 4, 5, 12, 13, 6, 7, 14, 15,
@@ -79,14 +82,14 @@ impl SMDHIcon {
                     let coords = (x + tile_x_offset, y + tile_y_offset);
 
                     let rgb = &large_icon_data[pos];
-                    pixbuf.put_pixel(coords.0, coords.1, rgb.r(), rgb.g(), rgb.b(), 0xFF);
+                    img.put_pixel(coords.0, coords.1, Rgba([rgb.r(), rgb.g(), rgb.b(), 0xFF]));
 
                     pos += 1;
                 }
             }
         }
 
-        Some(pixbuf)
+        img
     }
 }
 
@@ -104,10 +107,9 @@ impl SMDHIcon {
         f.seek(SeekFrom::Current(SMDH_LARGE_ICON_OFFSET - 4))?;
         let mut large_icon_bytes = [0u8; SMDH_LARGE_ICON_SIZE];
         f.read_exact(&mut large_icon_bytes)?;
-        let Some(large_icon) = SMDHIcon::generate_pixbuf_from_bytes(&large_icon_bytes) else {
-            return Err(ParsingError::UnableToExtractN3DSIcon);
-        };
-        Ok(SMDHIcon { large_icon })
+        Ok(SMDHIcon {
+            large_icon: SMDHIcon::generate_icon_from_bytes(&large_icon_bytes),
+        })
     }
 
     pub fn from_n3dsx<T: Read + Seek>(f: &mut T) -> Result<Self, ParsingError> {

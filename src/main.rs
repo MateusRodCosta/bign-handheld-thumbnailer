@@ -3,7 +3,7 @@ mod n3ds;
 mod nds;
 mod utils;
 
-use gdk_pixbuf::InterpType;
+use image::DynamicImage;
 use main_errors::MainError;
 use n3ds::structures::SMDHIcon;
 use nds::extract_nds_banner;
@@ -25,7 +25,7 @@ impl ThumbnailerArgs {
 
 #[derive(Debug, Clone)]
 struct ThumbnailerArgsFileParams {
-    size: Option<i32>,
+    size: Option<u32>,
     input_file: std::path::PathBuf,
     output_file: std::path::PathBuf,
 }
@@ -111,7 +111,7 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), MainError> {
     // for the Nintendo 3DS-related mime types as defined by the Citra emulator
 
     let mut input = File::open(input)?;
-    let pixbuf = match content_type {
+    let img = match content_type {
         "application/x-nintendo-ds-rom" => extract_nds_banner(&mut input)?.get_icon(),
         "application/x-ctr-cia" => SMDHIcon::from_cia(&mut input)?.get_large_icon(),
         "application/x-ctr-smdh" => SMDHIcon::from_smdh(&mut input)?.get_large_icon(),
@@ -126,10 +126,20 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), MainError> {
     };
 
     // Whether to do optional scaling
-    let pixbuf = size
-        .and_then(|size| pixbuf.scale_simple(size, size, InterpType::Bilinear))
-        .unwrap_or(pixbuf);
 
-    pixbuf.savev(output, "png", &[])?;
-    Ok(())
+    match size {
+        None => {
+            img.save_with_format(output, image::ImageFormat::Png)?;
+            Ok(())
+        }
+        Some(size) => {
+            let img = DynamicImage::ImageRgba8(img).resize(
+                size,
+                size,
+                image::imageops::FilterType::CatmullRom,
+            );
+            img.save_with_format(output, image::ImageFormat::Png)?;
+            Ok(())
+        }
+    }
 }

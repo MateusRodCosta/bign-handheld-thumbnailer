@@ -11,8 +11,8 @@ pub enum MainError {
     InvalidContentType(String),
     #[error("IO error: {0}")]
     IOError(#[from] std::io::Error),
-    #[error("GLib eror: {0}")]
-    GlibError(#[from] gio::glib::Error),
+    #[error("Image eror: {0}")]
+    GlibError(#[from] image::ImageError),
     #[error("NDS format parsing error: {0}")]
     NDSParsingError(#[from] nds::errors::ParsingError),
     #[error("3DS format parsing error: {0}")]

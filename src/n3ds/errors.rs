@@ -18,8 +18,6 @@ pub enum ParsingError {
     CXIFileEncrypted,
     #[error("Error finding icon file inside ExeFS!")]
     CXIExeFSIconFileNotFound,
-    #[error("Unable to extract 3DS icon!")]
-    UnableToExtractN3DSIcon,
     #[error("IO error: {0}")]
     IOError(#[from] std::io::Error),
 }
