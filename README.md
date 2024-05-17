@@ -25,13 +25,11 @@ The RPMs can be downloaded from the [bign-handheld-thumbnailer COPR](https://cop
 
 ### Manual
 
-There are three pieces to get the thumbnailer running: a compiled `bign-handheld-thumbnailer` binary, the `bign-handheld-thumbnailer.thumbnailer` file and the needed mime type definitions from `bign-handheld-thumbnailer-3ds.xml`.
+You will need a Rust development environment and meson installed to
+install the binaries and data files:
+```
+meson setup _build -Dprefix=/usr
+ninja -C _build install
+```
 
-Due to nautilus using a sandbox to run thumbnailers it's needed to install the binary in a place where the sandbox can access it, such as `/usr/bin`.
-
-1. Compile the project with `cargo build --release`
-2. Copy the compiled binary to /usr/bin (e.g. `sudo cp target/release/bign-handheld-thumbnailer /usr/bin/`)
-3. Copy `bign-handheld-thumbnailer-3ds.xml` to `/usr/share/mime/packages/` to install the needed mime type definition system-wide
-4. Run `sudo update-mime-database /usr/share/mime` so the system-wide mime type database is updated based on the newly-added configuration
-5. Copy the `bign-handheld-thumbnailer.thumbnailer` file to `~/.local/share/thumbnailers` (user-install) or `/usr/share/thumbnailers` (system-install)
-6. At this point thumbnails should be working, you likely will want to restart the file explorer or clear the cached thumbnails
+At this point thumbnails should be working, you likely will want to restart the file explorer or clear the cached thumbnails
