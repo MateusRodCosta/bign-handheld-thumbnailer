@@ -282,11 +282,10 @@ impl SMDHIcon {
 
         let mut file_headers = [0u8; EXEFS_HEADER_FILE_HEADERS_SIZE];
         f.read_exact(&mut file_headers)?;
-        let file_headers: Vec<ExeFSFileHeader> = file_headers
+        let mut file_headers = file_headers
             .chunks_exact(16)
-            .filter_map(|chunk| ExeFSFileHeader::from_bytes(chunk.try_into().unwrap()))
-            .collect();
-        let Some(icon_file) = file_headers.iter().find(|item| item.file_name() == b"icon") else {
+            .filter_map(|chunk| ExeFSFileHeader::from_bytes(chunk.try_into().unwrap()));
+        let Some(icon_file) = file_headers.find(|item| item.file_name() == b"icon") else {
             return Err(ParsingError::CXIExeFSIconFileNotFound);
         };
 
