@@ -46,6 +46,8 @@ install_data(
     install_dir: get_option('datadir') / 'mime/packages',
 )
 
-gnome.post_install(
-    update_mime_database: true
-)
+if get_option('update_mime_database')
+  gnome.post_install(
+      update_mime_database: true
+  )
+endif
