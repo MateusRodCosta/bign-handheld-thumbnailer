@@ -1,0 +1,1 @@
+option('update_mime_database', type: 'boolean', value: true, description: 'Whether to run update-mime-database after installation')
