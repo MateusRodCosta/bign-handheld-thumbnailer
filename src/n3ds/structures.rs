@@ -187,9 +187,9 @@ impl SMDHIcon {
         let tmd_size_with_padding = tmd_size.div_ceil(0x40) * 0x40;
         let content_size_with_padding = content_size.div_ceil(0x40) * 0x40;
 
-        println!("Trying parsing icon from CIA Meta section");
+        println!("Trying to parse icon from CIA Meta section...");
         if meta_size != CIAMetaSize::Present {
-            println!("Meta section not present");
+            println!("Meta section not present, skipping");
         } else {
             let offset_meta: u64 = CIA_HEADER_SIZE
                 + u64::from(certificate_chain_size_with_padding)
@@ -212,11 +212,18 @@ impl SMDHIcon {
             + u64::from(ticket_size_with_padding)
             + u64::from(tmd_size_with_padding);
 
-        println!("Parsing SMDH from CIA's CXI");
-        let Some(tmd_smdh_icon) = SMDHIcon::from_cia_tmd(f, offset_content)? else {
-            return Err(ParsingError::CIAHasNoIconAvailable);
-        };
-        Ok(tmd_smdh_icon)
+        println!("Trying to parse SMDH from CIA's CXI");
+        match SMDHIcon::from_cia_tmd(f, offset_content) {
+            Ok(Some(icon)) => Ok(icon),
+            Ok(None) => {
+                println!("Failed to parse SMDH from CIA's CXI");
+                return Err(ParsingError::CIAHasNoIconAvailable);
+            },
+            Err(error) => {
+                println!("{}", error);
+                return Err(ParsingError::CIAHasNoIconAvailable);
+            }
+        }
     }
 
     pub fn from_cia_meta<T: Read + Seek>(f: &mut T) -> Result<Self, ParsingError> {

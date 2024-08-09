@@ -10,7 +10,7 @@ pub enum ParsingError {
     CIAMetaInvalidSize(u32),
     #[error("CIA has no icon available either on Meta section or on CXI.")]
     CIAHasNoIconAvailable,
-    #[error("CiA Title Metadata contains no signature or a invalid value. Found {0:x?}")]
+    #[error("CIA Title Metadata contains no signature or a invalid value. Found {0:x?}")]
     CIASignatureTypeInvalidValue(u32),
     #[error("CIA Content Index contains invalid value. Found {0:x?}")]
     CIAContentIndexInvalidValue(u16),
