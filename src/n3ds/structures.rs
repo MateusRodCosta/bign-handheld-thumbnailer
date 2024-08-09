@@ -176,9 +176,7 @@ impl SMDHIcon {
         let mut meta_size = [0u8; 4];
         f.read_exact(&mut meta_size)?;
         let meta_size = u32::from_le_bytes(meta_size);
-
         let meta_size = CIAMetaSize::try_from(meta_size)?;
-        let meta_size: u32 = meta_size.value();
 
         let mut content_size = [0u8; 8];
         f.read_exact(&mut content_size)?;
@@ -187,11 +185,10 @@ impl SMDHIcon {
         let certificate_chain_size_with_padding = certificate_chain_size.div_ceil(0x40) * 0x40;
         let ticket_size_with_padding = ticket_size.div_ceil(0x40) * 0x40;
         let tmd_size_with_padding = tmd_size.div_ceil(0x40) * 0x40;
-        let _meta_size_with_padding = meta_size.div_ceil(0x40) * 0x40;
         let content_size_with_padding = content_size.div_ceil(0x40) * 0x40;
 
         println!("Trying parsing icon from CIA Meta section");
-        if meta_size == 0 {
+        if meta_size != CIAMetaSize::Present {
             println!("Meta section not present");
         } else {
             let offset_meta: u64 = CIA_HEADER_SIZE

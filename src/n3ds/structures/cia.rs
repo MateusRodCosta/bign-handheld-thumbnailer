@@ -2,7 +2,7 @@ use std::io::{Read, Seek, SeekFrom};
 
 use crate::n3ds::errors::ParsingError;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CIAMetaSize {
     None,
     CVerUSA,
@@ -20,15 +20,6 @@ impl TryFrom<u32> for CIAMetaSize {
             0x200 => Ok(CIAMetaSize::Dummy),
             0x3AC0 => Ok(CIAMetaSize::Present),
             _ => Err(Self::Error::CIAMetaInvalidSize(value)),
-        }
-    }
-}
-
-impl CIAMetaSize {
-    pub fn value(self) -> u32 {
-        match self {
-            CIAMetaSize::Present => 0x3AC0,
-            _ => 0,
         }
     }
 }
