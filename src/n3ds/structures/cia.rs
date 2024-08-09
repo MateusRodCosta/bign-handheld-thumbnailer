@@ -62,23 +62,19 @@ impl TryFrom<u32> for CIASignatureType {
 impl CIASignatureType {
     pub fn size(&self) -> usize {
         match self {
-            CIASignatureType::Rsa4096Sha1 => 0x200,
-            CIASignatureType::Rsa2048Sha1 => 0x100,
-            CIASignatureType::EllipticCurveWithSHA1 => 0x3C,
-            CIASignatureType::Rsa4096Sha256 => 0x200,
-            CIASignatureType::Rsa2048Sha256 => 0x100,
-            CIASignatureType::EcdsaWithSha256 => 0x3C,
+            CIASignatureType::Rsa4096Sha1 | CIASignatureType::Rsa4096Sha256 => 0x200,
+            CIASignatureType::Rsa2048Sha1 | CIASignatureType::Rsa2048Sha256 => 0x100,
+            CIASignatureType::EllipticCurveWithSHA1 | CIASignatureType::EcdsaWithSha256 => 0x3C,
         }
     }
 
     pub fn padding_size(&self) -> usize {
         match self {
-            CIASignatureType::Rsa4096Sha1 => 0x3C,
-            CIASignatureType::Rsa2048Sha1 => 0x3C,
-            CIASignatureType::EllipticCurveWithSHA1 => 0x40,
-            CIASignatureType::Rsa4096Sha256 => 0x3C,
-            CIASignatureType::Rsa2048Sha256 => 0x3C,
-            CIASignatureType::EcdsaWithSha256 => 0x40,
+            CIASignatureType::Rsa4096Sha1
+            | CIASignatureType::Rsa4096Sha256
+            | CIASignatureType::Rsa2048Sha1
+            | CIASignatureType::Rsa2048Sha256 => 0x3C,
+            CIASignatureType::EllipticCurveWithSHA1 | CIASignatureType::EcdsaWithSha256 => 0x40,
         }
     }
 }
