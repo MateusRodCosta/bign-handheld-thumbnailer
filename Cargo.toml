@@ -13,9 +13,9 @@ publish = false
 
 [dependencies]
 pico-args = "0.5.0"
-gio = "0.19.3"
+gio = "0.19.8"
 image =  { version = "0.24.9", default-features = false, features = ["png"] }
-thiserror = "1.0.59"
+thiserror = "1.0.63"
 
 [profile.release]
 strip = true
