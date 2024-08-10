@@ -1,12 +1,12 @@
 mod args;
-mod main_errors;
+mod error;
 mod n3ds;
 mod nds;
 mod utils;
 
 use args::ThumbnailerArgs;
+use error::Error;
 use image::DynamicImage;
-use main_errors::MainError;
 use n3ds::structures::SMDHIcon;
 use nds::extract_nds_banner;
 use pico_args::Arguments;
@@ -31,7 +31,7 @@ fn main() -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), MainError> {
+fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), Error> {
     if args.show_version() {
         const NAME: &str = env!("CARGO_PKG_NAME");
         const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -75,7 +75,7 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), MainError> {
         "application/x-ctr-cci" | "application/x-nintendo-3ds-rom" => {
             SMDHIcon::from_cci(&mut input)?.get_large_icon()
         }
-        _ => return Err(MainError::InvalidContentType(content_type.to_string())),
+        _ => return Err(Error::InvalidContentType(content_type.to_string())),
     };
 
     // Whether to do optional scaling
@@ -102,8 +102,7 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), MainError> {
                 size,
                 image::imageops::FilterType::CatmullRom,
             );
-            img.save_with_format(output, image::ImageFormat::Png)?;
-            Ok(())
+            Ok(img.save_with_format(output, image::ImageFormat::Png)?)
         }
     }
 }

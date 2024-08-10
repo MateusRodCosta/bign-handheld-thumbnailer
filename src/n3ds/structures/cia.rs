@@ -145,10 +145,10 @@ impl TryFrom<u16> for CIAContentIndex {
 
 #[derive(Debug, Clone)]
 pub struct CIAContentChunkRecord {
-    content_id: u32,
+    _content_id: u32,
     content_index: CIAContentIndex,
     content_type: u16,
-    content_size: u64,
+    _content_size: u64,
     _sha256_hash: [u8; 0x20],
 }
 
@@ -166,28 +166,19 @@ impl CIAContentChunkRecord {
         let content_index = CIAContentIndex::try_from(content_index)?;
 
         let content_info_record = CIAContentChunkRecord {
-            content_id,
+            _content_id: content_id,
             content_index,
             content_type,
-            content_size,
+            _content_size: content_size,
             _sha256_hash: sha256_hash,
         };
         Ok(content_info_record)
     }
 
-    pub fn content_id(&self) -> u32 {
-        self.content_id
-    }
-
     pub fn content_index(&self) -> &CIAContentIndex {
         &self.content_index
     }
-
     pub fn content_type(&self) -> u16 {
         self.content_type
-    }
-
-    pub fn content_size(&self) -> u64 {
-        self.content_size
     }
 }
