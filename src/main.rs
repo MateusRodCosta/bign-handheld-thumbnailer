@@ -1,8 +1,10 @@
+mod args;
 mod main_errors;
 mod n3ds;
 mod nds;
 mod utils;
 
+use args::ThumbnailerArgs;
 use image::DynamicImage;
 use main_errors::MainError;
 use n3ds::structures::SMDHIcon;
@@ -11,29 +13,10 @@ use pico_args::Arguments;
 use std::fs::File;
 use std::{path::Path, process::ExitCode};
 
-#[derive(Debug, Clone)]
-struct ThumbnailerArgs {
-    show_version: bool,
-    file_params: Option<ThumbnailerArgsFileParams>,
-}
-
-impl ThumbnailerArgs {
-    pub fn file_params(&self) -> Option<ThumbnailerArgsFileParams> {
-        self.file_params.clone()
-    }
-}
-
-#[derive(Debug, Clone)]
-struct ThumbnailerArgsFileParams {
-    size: Option<u32>,
-    input_file: std::path::PathBuf,
-    output_file: std::path::PathBuf,
-}
-
 fn main() -> ExitCode {
     let args = Arguments::from_env();
 
-    let args = match get_thumbnailer_args(&args) {
+    let args = match ThumbnailerArgs::try_from(&args) {
         Err(e) => {
             eprintln!("{e}");
             return ExitCode::FAILURE;
@@ -46,36 +29,6 @@ fn main() -> ExitCode {
     }
 
     ExitCode::SUCCESS
-}
-
-fn get_thumbnailer_args(arguments: &Arguments) -> Result<ThumbnailerArgs, MainError> {
-    let mut args = arguments.clone();
-
-    let show_version = args.contains("--version");
-    let file_params = if show_version {
-        None
-    } else {
-        Some(get_thumbnailer_args_file_params(&mut args)?)
-    };
-
-    Ok(ThumbnailerArgs {
-        show_version,
-        file_params,
-    })
-}
-
-fn get_thumbnailer_args_file_params(
-    args: &mut Arguments,
-) -> Result<ThumbnailerArgsFileParams, MainError> {
-    let size = args.opt_value_from_str("-s")?;
-    let input_file = args.free_from_str()?;
-    let output_file = args.free_from_str()?;
-
-    Ok(ThumbnailerArgsFileParams {
-        size,
-        input_file,
-        output_file,
-    })
 }
 
 fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), MainError> {
@@ -91,9 +44,11 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), MainError> {
     // if it's not a `--version` command, then just extract the file params directly
     let file_params = args.file_params().unwrap();
 
+    if file_params.is_dry_run {
+        println!("Dry run mode, extracted icon will not be saved to a file!")
+    }
+
     let input = Path::new(&file_params.input_file);
-    let output = Path::new(&file_params.output_file);
-    let size = file_params.size;
 
     let content_type = utils::content_type_guess(&Some(input), None);
     let content_type = content_type.0.as_str();
@@ -127,7 +82,18 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), MainError> {
 
     // Whether to do optional scaling
 
-    match size {
+    if file_params.is_dry_run {
+        return Ok(());
+    }
+
+    let output = match &file_params.output_file {
+        Some(data) => Path::new(data),
+        None => {
+            println!("No output path, not saving any icon.");
+            return Ok(());
+        }
+    };
+    match file_params.size {
         None => {
             img.save_with_format(output, image::ImageFormat::Png)?;
             Ok(())
