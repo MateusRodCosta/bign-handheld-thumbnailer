@@ -1,4 +1,4 @@
 [Thumbnailer Entry]
 TryExec=@bindir@/bign-handheld-thumbnailer
-Exec=@bindir@/bign-handheld-thumbnailer -s %s %i %o
+Exec=@bindir@/bign-handheld-thumbnailer -i %i -o %o -s %s
 MimeType=application/x-nintendo-ds-rom;application/x-ctr-cia;application/x-ctr-smdh;application/x-ctr-3dsx;application/x-nintendo-3ds-executable;application/x-ctr-cxi;application/x-ctr-cci;application/x-nintendo-3ds-rom;
