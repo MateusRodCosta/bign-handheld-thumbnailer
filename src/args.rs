@@ -4,8 +4,8 @@ use crate::main_errors::MainError;
 
 #[derive(Debug, Clone)]
 pub struct ThumbnailerArgs {
-    pub show_version: bool,
-    pub file_params: Option<ThumbnailerArgsFileParams>,
+    show_version: bool,
+    file_params: Option<ThumbnailerArgsFileParams>,
 }
 
 impl TryFrom<&Arguments> for ThumbnailerArgs {
@@ -29,17 +29,20 @@ impl TryFrom<&Arguments> for ThumbnailerArgs {
 }
 
 impl ThumbnailerArgs {
-    pub fn file_params(&self) -> Option<ThumbnailerArgsFileParams> {
-        self.file_params.clone()
+    pub fn show_version(&self) -> bool {
+        self.show_version
+    }
+    pub fn file_params(&self) -> &Option<ThumbnailerArgsFileParams> {
+        &self.file_params
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct ThumbnailerArgsFileParams {
-    pub input_file: std::path::PathBuf,
-    pub is_dry_run: bool,
-    pub output_file: Option<std::path::PathBuf>,
-    pub size: Option<u32>,
+    input_file: std::path::PathBuf,
+    is_dry_run: bool,
+    output_file: Option<std::path::PathBuf>,
+    size: Option<u32>,
 }
 
 impl TryFrom<&Arguments> for ThumbnailerArgsFileParams {
@@ -62,5 +65,20 @@ impl TryFrom<&Arguments> for ThumbnailerArgsFileParams {
             is_dry_run,
             output_file,
         })
+    }
+}
+
+impl ThumbnailerArgsFileParams {
+    pub fn input_file(&self) -> &std::path::PathBuf {
+        &self.input_file
+    }
+    pub fn is_dry_run(&self) -> bool {
+        self.is_dry_run
+    }
+    pub fn output_file(&self) -> &Option<std::path::PathBuf> {
+        &self.output_file
+    }
+    pub fn size(&self) -> Option<u32> {
+        self.size
     }
 }

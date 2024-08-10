@@ -32,7 +32,7 @@ fn main() -> ExitCode {
 }
 
 fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), MainError> {
-    if args.show_version {
+    if args.show_version() {
         const NAME: &str = env!("CARGO_PKG_NAME");
         const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -42,14 +42,12 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), MainError> {
     }
 
     // if it's not a `--version` command, then just extract the file params directly
-    let file_params = args.file_params().unwrap();
-
-    if file_params.is_dry_run {
+    let file_params = args.file_params().as_ref().unwrap();
+    if file_params.is_dry_run() {
         println!("Dry run mode, extracted icon will not be saved to a file!")
     }
 
-    let input = Path::new(&file_params.input_file);
-
+    let input = Path::new(file_params.input_file());
     let content_type = utils::content_type_guess(&Some(input), None);
     let content_type = content_type.0.as_str();
 
@@ -82,18 +80,18 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), MainError> {
 
     // Whether to do optional scaling
 
-    if file_params.is_dry_run {
+    if file_params.is_dry_run() {
         return Ok(());
     }
 
-    let output = match &file_params.output_file {
+    let output = match file_params.output_file() {
         Some(data) => Path::new(data),
         None => {
             println!("No output path, not saving any icon.");
             return Ok(());
         }
     };
-    match file_params.size {
+    match file_params.size() {
         None => {
             img.save_with_format(output, image::ImageFormat::Png)?;
             Ok(())
