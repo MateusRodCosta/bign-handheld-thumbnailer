@@ -5,7 +5,7 @@ mod cxi;
 use image::{ImageBuffer, Rgba, RgbaImage};
 use std::io::{Read, Seek, SeekFrom};
 
-use crate::n3ds::errors::ParsingError;
+use crate::n3ds::errors::{CIAParsingError, CXIParsingError, ParsingError};
 use crate::utils::Rgb888;
 
 use cci::*;
@@ -214,14 +214,10 @@ impl SMDHIcon {
 
         println!("Trying to parse SMDH from CIA's CXI");
         match SMDHIcon::from_cia_tmd(f, offset_content) {
-            Ok(Some(icon)) => Ok(icon),
-            Ok(None) => {
-                println!("Failed to parse SMDH from CIA's CXI");
-                return Err(ParsingError::CIAHasNoIconAvailable);
-            },
+            Ok(icon) => Ok(icon),
             Err(error) => {
-                println!("{}", error);
-                return Err(ParsingError::CIAHasNoIconAvailable);
+                println!("Failed to parse SMDH from CIA's CXI");
+                return Err(error.into());
             }
         }
     }
@@ -266,29 +262,28 @@ impl SMDHIcon {
     pub fn from_cia_tmd<T: Read + Seek>(
         f: &mut T,
         content_offset: u64,
-    ) -> Result<Option<Self>, ParsingError> {
+    ) -> Result<Self, ParsingError> {
         let title_metadata = CIATitleMetadata::from_file(f)?;
 
         f.seek(SeekFrom::Start(content_offset))?;
-        let Some(first_content) = title_metadata.content_chunk_records().first() else {
-            return Ok(None);
+        let Some(cxi_content) = title_metadata
+            .content_chunk_records()
+            .iter()
+            .find(|item| *item.content_index() == CIAContentIndex::MainContent)
+        else {
+            return Err(CIAParsingError::NoIconAvailable(CXIParsingError::NoCXIContent).into());
         };
 
-        match first_content.content_index() {
-            CIAContentIndex::MainContent => (),
-            _ => {
-                return Ok(None);
-            }
-        }
-
-        match first_content.content_type() {
+        match cxi_content.content_type() {
             1 => {
-                return Err(ParsingError::CXIFileEncrypted);
+                return Err(
+                    CIAParsingError::NoIconAvailable(CXIParsingError::FileEncrypted).into(),
+                );
             }
             _ => (),
         };
 
-        Ok(Some(SMDHIcon::from_cxi(f)?))
+        SMDHIcon::from_cxi(f)
     }
 
     pub fn from_cxi<T: Read + Seek>(f: &mut T) -> Result<Self, ParsingError> {
@@ -311,7 +306,7 @@ impl SMDHIcon {
         let flags_index_7 = flags[7];
         let is_no_crypto = (flags_index_7 & 0x4) == 0x4;
         if !is_no_crypto {
-            return Err(ParsingError::CXIFileEncrypted);
+            return Err(CXIParsingError::FileEncrypted.into());
         }
 
         f.seek(SeekFrom::Current(
@@ -343,7 +338,7 @@ impl SMDHIcon {
             .chunks_exact(16)
             .filter_map(|chunk| ExeFSFileHeader::from_bytes(chunk.try_into().unwrap()));
         let Some(icon_file) = file_headers.find(|item| item.file_name() == b"icon") else {
-            return Err(ParsingError::CXIExeFSIconFileNotFound);
+            return Err(CXIParsingError::ExeFSIconFileNotFound.into());
         };
 
         f.seek(SeekFrom::Current(

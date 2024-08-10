@@ -1,6 +1,6 @@
 use std::io::{Read, Seek, SeekFrom};
 
-use crate::n3ds::errors::ParsingError;
+use crate::n3ds::errors::{CIAParsingError, ParsingError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CIAMetaSize {
@@ -11,7 +11,7 @@ pub enum CIAMetaSize {
 }
 
 impl TryFrom<u32> for CIAMetaSize {
-    type Error = ParsingError;
+    type Error = CIAParsingError;
 
     fn try_from(value: u32) -> Result<Self, Self::Error> {
         match value {
@@ -19,7 +19,7 @@ impl TryFrom<u32> for CIAMetaSize {
             8 => Ok(CIAMetaSize::CVerUSA),
             0x200 => Ok(CIAMetaSize::Dummy),
             0x3AC0 => Ok(CIAMetaSize::Present),
-            _ => Err(Self::Error::CIAMetaInvalidSize(value)),
+            _ => Err(Self::Error::MetaInvalidSize(value)),
         }
     }
 }
@@ -35,7 +35,7 @@ enum CIASignatureType {
 }
 
 impl TryFrom<u32> for CIASignatureType {
-    type Error = ParsingError;
+    type Error = CIAParsingError;
 
     fn try_from(value: u32) -> Result<Self, Self::Error> {
         match value {
@@ -45,7 +45,7 @@ impl TryFrom<u32> for CIASignatureType {
             0x010003 => Ok(CIASignatureType::Rsa4096Sha256),
             0x010004 => Ok(CIASignatureType::Rsa2048Sha256),
             0x010005 => Ok(CIASignatureType::EcdsaWithSha256),
-            _ => Err(Self::Error::CIASignatureTypeInvalidValue(value)),
+            _ => Err(Self::Error::SignatureTypeInvalidValue(value)),
         }
     }
 }
@@ -123,7 +123,7 @@ impl CIATitleMetadata {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CIAContentIndex {
     MainContent,
     HomeMenuManual,
@@ -131,14 +131,14 @@ pub enum CIAContentIndex {
 }
 
 impl TryFrom<u16> for CIAContentIndex {
-    type Error = ParsingError;
+    type Error = CIAParsingError;
 
     fn try_from(value: u16) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(CIAContentIndex::MainContent),
             1 => Ok(CIAContentIndex::HomeMenuManual),
             2 => Ok(CIAContentIndex::DlpChildContainer),
-            _ => Err(Self::Error::CIAContentIndexInvalidValue(value)),
+            _ => Err(Self::Error::ContentIndexInvalidValue(value)),
         }
     }
 }
@@ -153,7 +153,7 @@ pub struct CIAContentChunkRecord {
 }
 
 impl CIAContentChunkRecord {
-    pub fn from_bytes(content_chunk_record_bytes: &[u8; 0x30]) -> Result<Self, ParsingError> {
+    pub fn from_bytes(content_chunk_record_bytes: &[u8; 0x30]) -> Result<Self, CIAParsingError> {
         let content_id = u32::from_be_bytes(content_chunk_record_bytes[..4].try_into().unwrap());
         let content_index =
             u16::from_be_bytes(content_chunk_record_bytes[0x4..0x4 + 2].try_into().unwrap());
