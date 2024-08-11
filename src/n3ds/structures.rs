@@ -273,7 +273,7 @@ impl SMDHIcon {
             return Err(CIAParsingError::NoIconAvailable(CXIParsingError::NoCXIContent).into());
         };
 
-        if cxi_content.content_type() == 1 {
+        if (cxi_content.content_type() & 0x1) == 0x1 {
             return Err(CIAParsingError::NoIconAvailable(CXIParsingError::FileEncrypted).into());
         };
 
