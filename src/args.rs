@@ -60,10 +60,10 @@ impl TryFrom<&Arguments> for ThumbnailerArgsFileParams {
         let size = args.opt_value_from_str("-s")?;
 
         Ok(ThumbnailerArgsFileParams {
-            size,
             input_file,
             is_dry_run,
             output_file,
+            size,
         })
     }
 }

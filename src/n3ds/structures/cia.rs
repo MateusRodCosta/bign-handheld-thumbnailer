@@ -77,6 +77,10 @@ pub struct CIATitleMetadata {
 
 impl CIATitleMetadata {
     pub fn from_file<T: Read + Seek>(f: &mut T) -> Result<Self, ParsingError> {
+        const TITLE_METADATA_HEADER_CONTENT_COUNT_OFFSET: i64 = 0x9E;
+        const CONTENT_CHUNK_RECORDS_OFFSET: u64 = 0x9C4;
+        const CONTENT_CHUNK_RECORD_SIZE: usize = 0x30;
+
         let mut signature_type = [0u8; 4];
         f.read_exact(&mut signature_type)?;
         let signature_type = u32::from_be_bytes(signature_type);
@@ -87,25 +91,21 @@ impl CIATitleMetadata {
             .unwrap();
         let header_position = f.seek(SeekFrom::Current(signature_full_size))?;
 
-        const TITLE_METADATA_HEADER_CONTENT_COUNT_OFFSET: i64 = 0x9E;
         f.seek_relative(TITLE_METADATA_HEADER_CONTENT_COUNT_OFFSET)?;
         let mut content_count = [0u8; 2];
         f.read_exact(&mut content_count)?;
         let content_count = u16::from_be_bytes(content_count);
 
-        const CONTENT_CHUNK_RECORDS_OFFSET: u64 = 0x9C4;
         f.seek(SeekFrom::Start(
             header_position + CONTENT_CHUNK_RECORDS_OFFSET,
         ))?;
 
-        const CONTENT_CHUNK_RECORD_SIZE: usize = 0x30;
         let mut content_chunk_records: Vec<_> = vec![];
 
         for _ in 0..content_count {
             let mut content_chunk_record = [0u8; CONTENT_CHUNK_RECORD_SIZE];
             f.read_exact(&mut content_chunk_record)?;
-            let content_chunk_record =
-                CIAContentChunkRecord::from_bytes(&content_chunk_record.try_into().unwrap())?;
+            let content_chunk_record = CIAContentChunkRecord::from_bytes(&content_chunk_record)?;
             content_chunk_records.push(content_chunk_record);
         }
 

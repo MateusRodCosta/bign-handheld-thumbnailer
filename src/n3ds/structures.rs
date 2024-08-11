@@ -8,9 +8,9 @@ use std::io::{Read, Seek, SeekFrom};
 use crate::n3ds::errors::{CIAParsingError, CXIParsingError, ParsingError};
 use crate::utils::Rgb888;
 
-use cci::*;
-use cia::*;
-use cxi::*;
+use cci::CCIPartition;
+use cia::{CIAContentIndex, CIAMetaSize, CIATitleMetadata};
+use cxi::ExeFSFileHeader;
 
 /*
  * Intially SMDH, 3DSX and CIA files were supported.
@@ -188,9 +188,7 @@ impl SMDHIcon {
         let content_size_with_padding = content_size.div_ceil(0x40) * 0x40;
 
         println!("Trying to parse icon from CIA Meta section...");
-        if meta_size != CIAMetaSize::Present {
-            println!("Meta section not present, skipping");
-        } else {
+        if meta_size == CIAMetaSize::Present {
             let offset_meta: u64 = CIA_HEADER_SIZE
                 + u64::from(certificate_chain_size_with_padding)
                 + u64::from(ticket_size_with_padding)
@@ -201,6 +199,7 @@ impl SMDHIcon {
             let meta_smdh_icon = SMDHIcon::from_cia_meta(f)?;
             return Ok(meta_smdh_icon);
         }
+        println!("Meta section not present, skipping");
 
         let offset_tmd: u64 = CIA_HEADER_SIZE
             + u64::from(certificate_chain_size_with_padding)
@@ -217,7 +216,7 @@ impl SMDHIcon {
             Ok(icon) => Ok(icon),
             Err(error) => {
                 println!("Failed to parse SMDH from CIA's CXI");
-                return Err(error.into());
+                Err(error)
             }
         }
     }
@@ -274,13 +273,8 @@ impl SMDHIcon {
             return Err(CIAParsingError::NoIconAvailable(CXIParsingError::NoCXIContent).into());
         };
 
-        match cxi_content.content_type() {
-            1 => {
-                return Err(
-                    CIAParsingError::NoIconAvailable(CXIParsingError::FileEncrypted).into(),
-                );
-            }
-            _ => (),
+        if cxi_content.content_type() == 1 {
+            return Err(CIAParsingError::NoIconAvailable(CXIParsingError::FileEncrypted).into());
         };
 
         SMDHIcon::from_cxi(f)
