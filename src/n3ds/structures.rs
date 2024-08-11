@@ -110,7 +110,7 @@ impl SMDHIcon {
             return Err(ParsingError::FileMagicNotFound("SMDH", smdh_magic));
         }
 
-        f.seek(SeekFrom::Current(SMDH_LARGE_ICON_OFFSET - 4))?;
+        f.seek_relative(SMDH_LARGE_ICON_OFFSET - 4)?;
         let mut large_icon_bytes = [0u8; SMDH_LARGE_ICON_SIZE];
         f.read_exact(&mut large_icon_bytes)?;
         Ok(SMDHIcon {
@@ -224,7 +224,7 @@ impl SMDHIcon {
 
     pub fn from_cia_meta<T: Read + Seek>(f: &mut T) -> Result<Self, ParsingError> {
         const CIA_META_SMDH_OFFSET: i64 = 0x400;
-        f.seek(SeekFrom::Current(CIA_META_SMDH_OFFSET))?;
+        f.seek_relative(CIA_META_SMDH_OFFSET)?;
         let smdh_icon = SMDHIcon::from_smdh(f)?;
         Ok(smdh_icon)
     }
@@ -291,16 +291,14 @@ impl SMDHIcon {
         const CXI_HEADER_FLAGS_OFFSET: i64 = 0x188;
         const CXI_HEADER_EXEFS_OFFSET_VALUE: i64 = 0x1A0;
 
-        f.seek(SeekFrom::Current(CXI_HEADER_MAGIC_OFFSET))?;
+        f.seek_relative(CXI_HEADER_MAGIC_OFFSET)?;
         let mut cxi_magic = [0u8; 4];
         f.read_exact(&mut cxi_magic)?;
         if b"NCCH" != &cxi_magic {
             return Err(ParsingError::FileMagicNotFound("NCCH", cxi_magic));
         }
 
-        f.seek(SeekFrom::Current(
-            CXI_HEADER_FLAGS_OFFSET - (CXI_HEADER_MAGIC_OFFSET + 4),
-        ))?;
+        f.seek_relative(CXI_HEADER_FLAGS_OFFSET - (CXI_HEADER_MAGIC_OFFSET + 4))?;
         let mut flags = [0u8; 8];
         f.read_exact(&mut flags)?;
         let flags_index_7 = flags[7];
@@ -309,9 +307,7 @@ impl SMDHIcon {
             return Err(CXIParsingError::FileEncrypted.into());
         }
 
-        f.seek(SeekFrom::Current(
-            CXI_HEADER_EXEFS_OFFSET_VALUE - (CXI_HEADER_FLAGS_OFFSET + 8),
-        ))?;
+        f.seek_relative(CXI_HEADER_EXEFS_OFFSET_VALUE - (CXI_HEADER_FLAGS_OFFSET + 8))?;
 
         let mut exefs_offset = [0u8; 4];
         f.read_exact(&mut exefs_offset)?;
@@ -321,9 +317,7 @@ impl SMDHIcon {
         let mut exefs_size = [0u8; 4];
         f.read_exact(&mut exefs_size)?;
 
-        f.seek(SeekFrom::Current(
-            i64::from(exefs_offset) - (CXI_HEADER_EXEFS_OFFSET_VALUE + 4 + 4),
-        ))?;
+        f.seek_relative(i64::from(exefs_offset) - (CXI_HEADER_EXEFS_OFFSET_VALUE + 4 + 4))?;
         let smdh_icon = SMDHIcon::from_exefs(f)?;
         Ok(smdh_icon)
     }
@@ -341,10 +335,10 @@ impl SMDHIcon {
             return Err(CXIParsingError::ExeFSIconFileNotFound.into());
         };
 
-        f.seek(SeekFrom::Current(
+        f.seek_relative(
             EXEFS_HEADER_SIZE + i64::from(icon_file.file_offset())
                 - i64::try_from(EXEFS_HEADER_FILE_HEADERS_SIZE).unwrap(),
-        ))?;
+        )?;
         let smdh_icon = SMDHIcon::from_smdh(f)?;
         Ok(smdh_icon)
     }

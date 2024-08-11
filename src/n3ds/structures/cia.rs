@@ -88,9 +88,7 @@ impl CIATitleMetadata {
         let header_position = f.seek(SeekFrom::Current(signature_full_size))?;
 
         const TITLE_METADATA_HEADER_CONTENT_COUNT_OFFSET: i64 = 0x9E;
-        f.seek(SeekFrom::Current(
-            TITLE_METADATA_HEADER_CONTENT_COUNT_OFFSET,
-        ))?;
+        f.seek_relative(TITLE_METADATA_HEADER_CONTENT_COUNT_OFFSET)?;
         let mut content_count = [0u8; 2];
         f.read_exact(&mut content_count)?;
         let content_count = u16::from_be_bytes(content_count);
