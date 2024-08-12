@@ -10,9 +10,7 @@ impl ExeFSFileHeader {
         // Each header is composed of 16 bytes, if the header is empty it will be filled with zeroes
         // Therefore we can read it as a u128 and check if it's results in a zero as a small optimization
 
-        let is_empty = u128::from_ne_bytes(*file_headers_bytes);
-        let is_empty = is_empty == 0;
-        if is_empty {
+        if u128::from_ne_bytes(*file_headers_bytes) == 0 {
             return None;
         }
 
