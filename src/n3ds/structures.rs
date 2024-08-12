@@ -273,7 +273,7 @@ impl SMDHIcon {
             return Err(CIAParsingError::NoIconAvailable(CXIParsingError::NoCXIContent).into());
         };
 
-        if (cxi_content.content_type() & 0x1) == 0x1 {
+        if (cxi_content.content_type() & 0x1) != 0 {
             return Err(CIAParsingError::NoIconAvailable(CXIParsingError::FileEncrypted).into());
         };
 
@@ -296,8 +296,7 @@ impl SMDHIcon {
         let mut flags = [0u8; 8];
         f.read_exact(&mut flags)?;
         let flags_index_7 = flags[7];
-        let is_no_crypto = (flags_index_7 & 0x4) == 0x4;
-        if !is_no_crypto {
+        if (flags_index_7 & 0x4) != 0x4 {
             return Err(CXIParsingError::FileEncrypted.into());
         }
 
