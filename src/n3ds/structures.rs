@@ -59,6 +59,9 @@ impl SMDHIcon {
             .try_into()
             .unwrap();
 
+        const LARGE_ICON_SIZE: usize = 48;
+        const LARGE_ICON_WIDTH: usize = LARGE_ICON_SIZE;
+        const LARGE_ICON_HEIGHT: usize = LARGE_ICON_SIZE;
         /*
          * The large 3DS icon is 48x48 px and divided in tiles according to Morton order
          * Each color will usually be RGB565 although it's not the only supported color enconding
@@ -66,32 +69,28 @@ impl SMDHIcon {
 
         /*
          * Due to the Morton order, the code for the coordinates of the pixels is oxided from
-         * https://github.com/GEMISIS/SMDH-Creator/blob/master/SMDH-Creator/SMDH.cs#L255
+         * https://github.com/ihaveamac/pyctr/blob/master/pyctr/type/smdh.py
+         * Many thanks to ihaveamac from the Nintendo Homebrew Discord for the help
          */
 
-        let mut img = RgbaImage::new(48, 48);
+        let mut img = RgbaImage::new(LARGE_ICON_WIDTH as u32, LARGE_ICON_HEIGHT as u32);
 
-        let tile_order = [
-            0, 1, 8, 9, 2, 3, 10, 11, 16, 17, 24, 25, 18, 19, 26, 27, 4, 5, 12, 13, 6, 7, 14, 15,
-            20, 21, 28, 29, 22, 23, 30, 31, 32, 33, 40, 41, 34, 35, 42, 43, 48, 49, 56, 57, 50, 51,
-            58, 59, 36, 37, 44, 45, 38, 39, 46, 47, 52, 53, 60, 61, 54, 55, 62, 63,
-        ];
+        for y in 0..LARGE_ICON_HEIGHT {
+            for x in 0..LARGE_ICON_WIDTH {
+                let pixel_offset = (((y >> 3) * (LARGE_ICON_WIDTH >> 3) + (x >> 3)) << 6)
+                    + ((x & 1)
+                        | ((y & 1) << 1)
+                        | ((x & 2) << 1)
+                        | ((y & 2) << 2)
+                        | ((x & 4) << 2)
+                        | ((y & 4) << 3));
 
-        let mut pos = 0;
-        for tile_y in 0..6 {
-            let tile_y_offset = tile_y * 8;
-            for tile_x in 0..6 {
-                let tile_x_offset = tile_x * 8;
-                for tile_pos in tile_order {
-                    let x = tile_pos & 0x7;
-                    let y = tile_pos >> 3;
-                    let coords = (x + tile_x_offset, y + tile_y_offset);
-
-                    let rgb = &large_icon_data[pos];
-                    img.put_pixel(coords.0, coords.1, Rgba([rgb.r(), rgb.g(), rgb.b(), 0xFF]));
-
-                    pos += 1;
-                }
+                let pixel = &large_icon_data[pixel_offset];
+                img.put_pixel(
+                    x as u32,
+                    y as u32,
+                    Rgba([pixel.r(), pixel.g(), pixel.b(), 0xFF]),
+                );
             }
         }
 
