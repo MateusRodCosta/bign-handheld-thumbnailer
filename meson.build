@@ -3,11 +3,14 @@ project('bign-handheld-thumbnailer', 'rust',
   license: 'GPL-2.0-or-later',
   meson_version: '>= 0.64.0')
 
+addon_id = 'dev.mateusrodcosta.bign_handheld_thumbnailer'
+
 gnome = import('gnome')
 
 prefix = get_option('prefix')
 bindir = prefix / get_option('bindir')
 thumbnailers_dir = prefix / get_option('datadir') / 'thumbnailers'
+metainfo_dir = prefix / get_option('datadir') / 'metainfo'
 
 cargo_bin  = find_program('cargo')
 cargo_opt  = [ '--manifest-path', meson.project_source_root() / 'Cargo.toml' ]
@@ -36,13 +39,18 @@ cargo_build = custom_target(
   ]
 )
 
-configure_file(input : meson.project_name() + '.thumbnailer.in',
+configure_file(input : 'data/' + meson.project_name() + '.thumbnailer.in',
                output : meson.project_name() + '.thumbnailer',
                configuration : {'bindir' : bindir},
                install_dir : thumbnailers_dir)
 
+configure_file(input : 'data/' + meson.project_name() + '.metainfo.xml.in',
+               output : addon_id + '.metainfo.xml.in',
+               configuration : {'addon_id' : addon_id},
+               install_dir : metainfo_dir)
+
 install_data(
-    'bign-handheld-thumbnailer-3ds.xml',
+    'data/mime/bign-handheld-thumbnailer-3ds.xml',
     install_dir: get_option('datadir') / 'mime/packages',
 )
 

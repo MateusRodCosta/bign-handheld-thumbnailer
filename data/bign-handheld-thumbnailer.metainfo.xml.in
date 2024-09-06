@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="addon">
-  <id>dev.mateusrodcosta.bign_handheld_thumbnailer</id>
+  <id>@addon_id@</id>
 
   <extends>org.gnome.Nautilus</extends>
 
