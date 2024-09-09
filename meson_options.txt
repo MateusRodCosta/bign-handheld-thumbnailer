@@ -1,1 +1,2 @@
 option('update_mime_database', type: 'boolean', value: true, description: 'Whether to run update-mime-database after installation')
+option('generate_metainfo', type: 'boolean', value: false, description: 'Whether to generate and copy the .metainfo.xml file')

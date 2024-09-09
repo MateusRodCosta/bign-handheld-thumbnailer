@@ -44,11 +44,6 @@ configure_file(input : 'data/' + meson.project_name() + '.thumbnailer.in',
                configuration : {'bindir' : bindir},
                install_dir : thumbnailers_dir)
 
-configure_file(input : 'data/' + meson.project_name() + '.metainfo.xml.in',
-               output : addon_id + '.metainfo.xml.in',
-               configuration : {'addon_id' : addon_id},
-               install_dir : metainfo_dir)
-
 install_data(
     'data/mime/bign-handheld-thumbnailer-3ds.xml',
     install_dir: get_option('datadir') / 'mime/packages',
@@ -58,4 +53,11 @@ if get_option('update_mime_database')
   gnome.post_install(
       update_mime_database: true
   )
+endif
+
+if get_option('generate_metainfo')
+  configure_file(input : 'data/' + meson.project_name() + '.metainfo.xml.in',
+                output : addon_id + '.metainfo.xml.in',
+                configuration : {'addon_id' : addon_id},
+                install_dir : metainfo_dir)
 endif
