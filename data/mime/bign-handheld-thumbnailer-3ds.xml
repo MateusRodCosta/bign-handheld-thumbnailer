@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Sourced from https://github.com/Lime3DS/Lime3DS/blob/master/dist/lime.xml -->
-<!-- Created for 3DS emulators (Citra and later its fork, Lime) -->
+<!-- Sourced from https://github.com/PabloMK7/citra/blob/master/dist/citra.xml -->
+<!-- Created for 3DS emulators (Citra, and its forks after the Yuzu lawsuit) -->
 <!-- along with small modifications for bign-handheld-thumbnailer -->
 <!-- This is planned to be integrated upstream on xdg's shared-mime-info repo -->
 <!-- See https://gitlab.freedesktop.org/xdg/shared-mime-info/-/issues/229 for more info -->
