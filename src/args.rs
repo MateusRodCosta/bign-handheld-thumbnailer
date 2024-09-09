@@ -39,10 +39,10 @@ impl ThumbnailerArgs {
 
 #[derive(Debug, Clone)]
 pub struct ThumbnailerArgsFileParams {
-    input_file: std::path::PathBuf,
     is_dry_run: bool,
-    output_file: Option<std::path::PathBuf>,
     size: Option<u32>,
+    input_file: std::path::PathBuf,
+    output_file: Option<std::path::PathBuf>,
 }
 
 impl TryFrom<&Arguments> for ThumbnailerArgsFileParams {
@@ -51,34 +51,38 @@ impl TryFrom<&Arguments> for ThumbnailerArgsFileParams {
     fn try_from(arguments: &Arguments) -> Result<Self, Self::Error> {
         let mut args = arguments.clone();
 
-        let input_file = args.value_from_str("-i")?;
-
         let is_dry_run = args.contains("-n");
-
-        let output_file = args.opt_value_from_str("-o")?;
 
         let size = args.opt_value_from_str("-s")?;
 
+        let input_file = args.free_from_str()?;
+
+        let output_file = if !is_dry_run {
+            Some(args.free_from_str()?)
+        } else {
+            None
+        };
+
         Ok(ThumbnailerArgsFileParams {
-            input_file,
             is_dry_run,
-            output_file,
             size,
+            input_file,
+            output_file,
         })
     }
 }
 
 impl ThumbnailerArgsFileParams {
-    pub fn input_file(&self) -> &std::path::PathBuf {
-        &self.input_file
-    }
     pub fn is_dry_run(&self) -> bool {
         self.is_dry_run
     }
-    pub fn output_file(&self) -> &Option<std::path::PathBuf> {
-        &self.output_file
-    }
     pub fn size(&self) -> Option<u32> {
         self.size
+    }
+    pub fn input_file(&self) -> &std::path::PathBuf {
+        &self.input_file
+    }
+    pub fn output_file(&self) -> &Option<std::path::PathBuf> {
+        &self.output_file
     }
 }
