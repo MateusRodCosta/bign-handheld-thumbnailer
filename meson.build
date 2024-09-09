@@ -57,7 +57,7 @@ endif
 
 if get_option('generate_metainfo')
   configure_file(input : 'data/' + meson.project_name() + '.metainfo.xml.in',
-                output : addon_id + '.metainfo.xml.in',
+                output : addon_id + '.metainfo.xml',
                 configuration : {'addon_id' : addon_id},
                 install_dir : metainfo_dir)
 endif
