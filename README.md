@@ -1,5 +1,7 @@
 # bign-handheld-thumbnailer
 
+![bign-handheld-thumbnailer preview](img/bign-handheld-thumbnailer-preview.png)
+
 A thumbnailer for Nintendo handheld systems (Nintendo DS and 3DS) roms and files.
 
 This project adheres to the [Freedesktop Thumbnail Managing Standard](https://specifications.freedesktop.org/thumbnail-spec/thumbnail-spec-latest.html).
