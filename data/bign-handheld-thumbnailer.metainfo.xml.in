@@ -4,7 +4,7 @@
 
   <extends>org.gnome.Nautilus</extends>
 
-  <name>Thumbnailer for BigN handheld systems</name>
+  <name>Thumbnailer for Nintendo handheld systems</name>
   <summary>A thumbnailer for Nintendo handheld systems (Nintendo DS and 3DS) roms and files</summary>
   <url type="homepage">https://github.com/MateusRodCosta/bign-handheld-thumbnailer</url>
   <url type="bugtracker">https://github.com/MateusRodCosta/bign-handheld-thumbnailer/issues</url>
