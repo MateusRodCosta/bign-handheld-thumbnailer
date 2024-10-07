@@ -18,6 +18,7 @@ publish = false
 pico-args = "0.5.0"
 gio = "0.20.1"
 thiserror = "1.0.63"
+memmap2 = "0.9.5"
 
 [dependencies.image]
 version = "0.25.2"

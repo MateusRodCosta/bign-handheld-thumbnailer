@@ -1,4 +1,4 @@
-use std::io::{Read, Seek, SeekFrom};
+use memmap2::Mmap;
 
 use crate::n3ds::errors::{CIAParsingError, ParsingError};
 
@@ -76,37 +76,34 @@ pub struct CIATitleMetadata {
 }
 
 impl CIATitleMetadata {
-    pub fn from_file<T: Read + Seek>(f: &mut T) -> Result<Self, ParsingError> {
-        const TITLE_METADATA_HEADER_CONTENT_COUNT_OFFSET: i64 = 0x9E;
-        const CONTENT_CHUNK_RECORDS_OFFSET: u64 = 0x9C4;
+    pub fn from_input(input: &Mmap, offset: usize) -> Result<Self, ParsingError> {
+        const TITLE_METADATA_HEADER_CONTENT_COUNT_OFFSET: usize = 0x9E;
+        const CONTENT_CHUNK_RECORDS_OFFSET: usize = 0x9C4;
         const CONTENT_CHUNK_RECORD_SIZE: usize = 0x30;
 
-        let mut signature_type = [0u8; 4];
-        f.read_exact(&mut signature_type)?;
+        let signature_type: [u8; 4] = input[offset..offset + 4].try_into().unwrap();
         let signature_type = u32::from_be_bytes(signature_type);
         let signature_type = CIASignatureType::try_from(signature_type)?;
 
-        let signature_full_size: i64 = (signature_type.size() + signature_type.padding_size())
+        let signature_full_size = signature_type.size() + signature_type.padding_size();
+        let header_position = offset + 4 + signature_full_size;
+
+        let content_count: [u8; 2] = input[offset + TITLE_METADATA_HEADER_CONTENT_COUNT_OFFSET
+            ..offset + TITLE_METADATA_HEADER_CONTENT_COUNT_OFFSET + 2]
             .try_into()
             .unwrap();
-        let header_position = f.seek(SeekFrom::Current(signature_full_size))?;
-
-        f.seek_relative(TITLE_METADATA_HEADER_CONTENT_COUNT_OFFSET)?;
-        let mut content_count = [0u8; 2];
-        f.read_exact(&mut content_count)?;
         let content_count = u16::from_be_bytes(content_count);
 
-        f.seek(SeekFrom::Start(
-            header_position + CONTENT_CHUNK_RECORDS_OFFSET,
-        ))?;
-
         let mut content_chunk_records: Vec<_> = vec![];
-
+        let mut current_offset: usize = header_position + CONTENT_CHUNK_RECORDS_OFFSET;
         for _ in 0..content_count {
-            let mut content_chunk_record = [0u8; CONTENT_CHUNK_RECORD_SIZE];
-            f.read_exact(&mut content_chunk_record)?;
+            let content_chunk_record: [u8; CONTENT_CHUNK_RECORD_SIZE] = input
+                [current_offset..current_offset + CONTENT_CHUNK_RECORD_SIZE]
+                .try_into()
+                .unwrap();
             let content_chunk_record = CIAContentChunkRecord::from_bytes(&content_chunk_record)?;
             content_chunk_records.push(content_chunk_record);
+            current_offset += CONTENT_CHUNK_RECORD_SIZE;
         }
 
         let title_metadata = CIATitleMetadata {
@@ -154,11 +151,11 @@ impl CIAContentChunkRecord {
     pub fn from_bytes(content_chunk_record_bytes: &[u8; 0x30]) -> Result<Self, CIAParsingError> {
         let content_id = u32::from_be_bytes(content_chunk_record_bytes[..4].try_into().unwrap());
         let content_index =
-            u16::from_be_bytes(content_chunk_record_bytes[0x4..0x4 + 2].try_into().unwrap());
+            u16::from_be_bytes(content_chunk_record_bytes[4..4 + 2].try_into().unwrap());
         let content_type =
-            u16::from_be_bytes(content_chunk_record_bytes[0x6..0x6 + 2].try_into().unwrap());
+            u16::from_be_bytes(content_chunk_record_bytes[6..6 + 2].try_into().unwrap());
         let content_size =
-            u64::from_be_bytes(content_chunk_record_bytes[0x8..0x8 + 8].try_into().unwrap());
+            u64::from_be_bytes(content_chunk_record_bytes[8..8 + 8].try_into().unwrap());
         let sha256_hash: [u8; 0x20] = content_chunk_record_bytes[0x10..].try_into().unwrap();
 
         let content_index = CIAContentIndex::try_from(content_index)?;

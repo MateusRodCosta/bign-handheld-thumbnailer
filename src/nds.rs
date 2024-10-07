@@ -5,7 +5,7 @@ use crate::utils::Rgb888;
 
 use self::errors::ParsingError;
 use image::{ImageBuffer, Rgba, RgbaImage};
-use std::io::{Read, Seek, SeekFrom};
+use memmap2::Mmap;
 use structures::{NDSBannerDetails, NDSIconVersion, PaletteColor};
 
 /*
@@ -19,18 +19,18 @@ use structures::{NDSBannerDetails, NDSIconVersion, PaletteColor};
  * as the thumbnailer specification doesn't support animations.
 */
 
-pub fn extract_nds_banner<T: Read + Seek>(f: &mut T) -> Result<NDSBannerDetails, ParsingError> {
-    const NDS_HEADER_BANNER_OFFSET_OFFSET: u64 = 0x068;
+pub fn extract_nds_banner(input: &Mmap) -> Result<NDSBannerDetails, ParsingError> {
+    const NDS_HEADER_BANNER_OFFSET_OFFSET: usize = 0x068;
     const NDS_BANNER_SIZE: usize = 0x240;
 
-    f.seek(SeekFrom::Start(NDS_HEADER_BANNER_OFFSET_OFFSET))?;
-    let mut banner_offset = [0u8; 4];
-    f.read_exact(&mut banner_offset)?;
-    let banner_offset = u32::from_le_bytes(banner_offset);
-
-    f.seek(SeekFrom::Start(u64::from(banner_offset)))?;
-    let mut banner_bytes = [0u8; NDS_BANNER_SIZE];
-    f.read_exact(&mut banner_bytes)?;
+    let banner_offset: [u8; 4] = input
+        [NDS_HEADER_BANNER_OFFSET_OFFSET..NDS_HEADER_BANNER_OFFSET_OFFSET + 4]
+        .try_into()
+        .unwrap();
+    let banner_offset: usize = u32::from_le_bytes(banner_offset).try_into().unwrap();
+    let banner_bytes: [u8; NDS_BANNER_SIZE] = input[banner_offset..banner_offset + NDS_BANNER_SIZE]
+        .try_into()
+        .unwrap();
 
     let icon_version = u16::from_le_bytes(banner_bytes[..2].try_into().unwrap());
     let icon_version = NDSIconVersion::try_from(icon_version)?;

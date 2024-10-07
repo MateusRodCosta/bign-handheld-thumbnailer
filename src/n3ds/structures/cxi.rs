@@ -8,8 +8,6 @@ pub struct ExeFSFileHeader {
 impl ExeFSFileHeader {
     pub fn from_bytes(file_headers_bytes: &[u8; 16]) -> Option<Self> {
         // Each header is composed of 16 bytes, if the header is empty it will be filled with zeroes
-        // Therefore we can read it as a u128 and check if it's results in a zero as a small optimization
-
         if *file_headers_bytes == [0u8; 16] {
             return None;
         }
