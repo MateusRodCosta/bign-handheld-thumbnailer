@@ -52,20 +52,21 @@ impl SMDHIcon {
     }
 
     fn generate_icon_from_bytes(large_icon_bytes: &[u8; 0x1200]) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
+        /*
+         * The large 3DS icon is 48x48 px and divided in tiles according to Morton order
+         * Each color will usually be RGB565 although it's not the only supported color enconding
+         */
+
+        const LARGE_ICON_SIZE: usize = 48;
+        const LARGE_ICON_WIDTH: usize = LARGE_ICON_SIZE;
+        const LARGE_ICON_HEIGHT: usize = LARGE_ICON_SIZE;
+
         let large_icon_data: [Rgb888; 0x1200 / 2] = large_icon_bytes
             .chunks_exact(2)
             .map(|chunk| Rgb888::from_rgb565_bytes(chunk.try_into().unwrap()))
             .collect::<Vec<_>>()
             .try_into()
             .unwrap();
-
-        const LARGE_ICON_SIZE: usize = 48;
-        const LARGE_ICON_WIDTH: usize = LARGE_ICON_SIZE;
-        const LARGE_ICON_HEIGHT: usize = LARGE_ICON_SIZE;
-        /*
-         * The large 3DS icon is 48x48 px and divided in tiles according to Morton order
-         * Each color will usually be RGB565 although it's not the only supported color enconding
-         */
 
         /*
          * Due to the Morton order, the code for the coordinates of the pixels is oxided from
@@ -158,19 +159,20 @@ impl SMDHIcon {
 
         const CIA_HEADER_CERTIFICATE_CHAIN_SIZE_OFFSET: u64 = 0x08;
         const CIA_HEADER_SIZE: u64 = 0x2040;
+        const CIA_PADDING_SIZE: u64 = 0x40;
 
         f.seek(SeekFrom::Start(CIA_HEADER_CERTIFICATE_CHAIN_SIZE_OFFSET))?;
         let mut certificate_chain_size = [0u8; 4];
         f.read_exact(&mut certificate_chain_size)?;
-        let certificate_chain_size = u32::from_le_bytes(certificate_chain_size);
+        let certificate_chain_size: u64 = u32::from_le_bytes(certificate_chain_size).into();
 
         let mut ticket_size = [0u8; 4];
         f.read_exact(&mut ticket_size)?;
-        let ticket_size = u32::from_le_bytes(ticket_size);
+        let ticket_size: u64 = u32::from_le_bytes(ticket_size).into();
 
         let mut tmd_size = [0u8; 4];
         f.read_exact(&mut tmd_size)?;
-        let tmd_size = u32::from_le_bytes(tmd_size);
+        let tmd_size: u64 = u32::from_le_bytes(tmd_size).into();
 
         let mut meta_size = [0u8; 4];
         f.read_exact(&mut meta_size)?;
@@ -179,19 +181,20 @@ impl SMDHIcon {
 
         let mut content_size = [0u8; 8];
         f.read_exact(&mut content_size)?;
-        let content_size = u64::from_le_bytes(content_size);
+        let content_size: u64 = u64::from_le_bytes(content_size);
 
-        let certificate_chain_size_with_padding = certificate_chain_size.div_ceil(0x40) * 0x40;
-        let ticket_size_with_padding = ticket_size.div_ceil(0x40) * 0x40;
-        let tmd_size_with_padding = tmd_size.div_ceil(0x40) * 0x40;
-        let content_size_with_padding = content_size.div_ceil(0x40) * 0x40;
+        let certificate_chain_size_with_padding =
+            certificate_chain_size.next_multiple_of(CIA_PADDING_SIZE);
+        let ticket_size_with_padding = ticket_size.next_multiple_of(CIA_PADDING_SIZE);
+        let tmd_size_with_padding = tmd_size.next_multiple_of(CIA_PADDING_SIZE);
+        let content_size_with_padding = content_size.next_multiple_of(CIA_PADDING_SIZE);
 
         eprintln!("Trying to parse icon from CIA Meta section...");
         if meta_size == CIAMetaSize::Present {
             let offset_meta: u64 = CIA_HEADER_SIZE
-                + u64::from(certificate_chain_size_with_padding)
-                + u64::from(ticket_size_with_padding)
-                + u64::from(tmd_size_with_padding)
+                + certificate_chain_size_with_padding
+                + ticket_size_with_padding
+                + tmd_size_with_padding
                 + content_size_with_padding;
 
             f.seek(SeekFrom::Start(offset_meta))?;
@@ -200,15 +203,14 @@ impl SMDHIcon {
         }
         eprintln!("Meta section not present, skipping");
 
-        let offset_tmd: u64 = CIA_HEADER_SIZE
-            + u64::from(certificate_chain_size_with_padding)
-            + u64::from(ticket_size_with_padding);
+        let offset_tmd: u64 =
+            CIA_HEADER_SIZE + certificate_chain_size_with_padding + ticket_size_with_padding;
         f.seek(SeekFrom::Start(offset_tmd))?;
 
         let offset_content: u64 = CIA_HEADER_SIZE
-            + u64::from(certificate_chain_size_with_padding)
-            + u64::from(ticket_size_with_padding)
-            + u64::from(tmd_size_with_padding);
+            + certificate_chain_size_with_padding
+            + ticket_size_with_padding
+            + tmd_size_with_padding;
 
         eprintln!("Trying to parse SMDH from CIA's CXI");
         match SMDHIcon::from_cia_tmd(f, offset_content) {
@@ -283,6 +285,7 @@ impl SMDHIcon {
         const CXI_HEADER_MAGIC_OFFSET: i64 = 0x100;
         const CXI_HEADER_FLAGS_OFFSET: i64 = 0x188;
         const CXI_HEADER_EXEFS_OFFSET_VALUE: i64 = 0x1A0;
+        const CXI_MEDIA_UNIT_SIZE: i64 = 0x200;
 
         f.seek_relative(CXI_HEADER_MAGIC_OFFSET)?;
         let mut cxi_magic = [0u8; 4];
@@ -303,13 +306,13 @@ impl SMDHIcon {
 
         let mut exefs_offset = [0u8; 4];
         f.read_exact(&mut exefs_offset)?;
-        let exefs_offset = u32::from_le_bytes(exefs_offset); // in media units
-        let exefs_offset = exefs_offset * 0x200;
+        let exefs_offset: i64 = u32::from_le_bytes(exefs_offset).try_into().unwrap(); // in media units
+        let exefs_offset = exefs_offset * CXI_MEDIA_UNIT_SIZE;
 
         let mut exefs_size = [0u8; 4];
         f.read_exact(&mut exefs_size)?;
 
-        f.seek_relative(i64::from(exefs_offset) - (CXI_HEADER_EXEFS_OFFSET_VALUE + 4 + 4))?;
+        f.seek_relative(exefs_offset - (CXI_HEADER_EXEFS_OFFSET_VALUE + 4 + 4))?;
         let smdh_icon = SMDHIcon::from_exefs(f)?;
         Ok(smdh_icon)
     }

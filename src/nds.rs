@@ -28,7 +28,7 @@ pub fn extract_nds_banner<T: Read + Seek>(f: &mut T) -> Result<NDSBannerDetails,
     f.read_exact(&mut banner_offset)?;
     let banner_offset = u32::from_le_bytes(banner_offset);
 
-    f.seek(SeekFrom::Start(u64::from(banner_offset)))?;
+    f.seek(SeekFrom::Start(banner_offset.into()))?;
     let mut banner_bytes = [0u8; NDS_BANNER_SIZE];
     f.read_exact(&mut banner_bytes)?;
 
