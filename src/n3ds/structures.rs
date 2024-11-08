@@ -189,7 +189,6 @@ impl SMDHIcon {
         let tmd_size_with_padding = tmd_size.next_multiple_of(CIA_PADDING_SIZE);
         let content_size_with_padding = content_size.next_multiple_of(CIA_PADDING_SIZE);
 
-        eprintln!("Trying to parse icon from CIA Meta section...");
         if meta_size == CIAMetaSize::Present {
             let offset_meta: u64 = CIA_HEADER_SIZE
                 + certificate_chain_size_with_padding
@@ -201,7 +200,7 @@ impl SMDHIcon {
             let meta_smdh_icon = SMDHIcon::from_cia_meta(f)?;
             return Ok(meta_smdh_icon);
         }
-        eprintln!("Meta section not present, skipping");
+        eprintln!("CIA Meta section not present, attempting CIA's CXI..");
 
         let offset_tmd: u64 =
             CIA_HEADER_SIZE + certificate_chain_size_with_padding + ticket_size_with_padding;
@@ -212,7 +211,6 @@ impl SMDHIcon {
             + ticket_size_with_padding
             + tmd_size_with_padding;
 
-        eprintln!("Trying to parse SMDH from CIA's CXI");
         match SMDHIcon::from_cia_tmd(f, offset_content) {
             Ok(icon) => Ok(icon),
             Err(error) => {
