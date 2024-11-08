@@ -16,8 +16,8 @@ publish = false
 # on Fedora repos for the currently supported Fedora releases
 [dependencies]
 pico-args = "0.5.0"
-gio = "0.20.1"
-thiserror = "1.0.63"
+gio = "0.20.4"
+thiserror = "1.0.65"
 
 [dependencies.image]
 version = "0.25.2"
