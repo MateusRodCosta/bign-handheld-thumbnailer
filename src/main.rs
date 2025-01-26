@@ -17,14 +17,9 @@ use utils::get_mime_type;
 fn main() -> ExitCode {
     let args = Arguments::from_env();
 
-    let args = match ThumbnailerArgs::try_from(&args) {
-        Ok(args) => args,
-        Err(e) => {
-            eprintln!("{e}");
-            return ExitCode::FAILURE;
-        }
-    };
-    if let Err(e) = bign_handheld_thumbnailer(&args) {
+    if let Err(e) =
+        ThumbnailerArgs::try_from(&args).and_then(|args| bign_handheld_thumbnailer(&args))
+    {
         eprintln!("{e}");
         return ExitCode::FAILURE;
     }
