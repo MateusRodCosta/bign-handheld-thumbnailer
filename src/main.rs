@@ -18,11 +18,11 @@ fn main() -> ExitCode {
     let args = Arguments::from_env();
 
     let args = match ThumbnailerArgs::try_from(&args) {
+        Ok(args) => args,
         Err(e) => {
             eprintln!("{e}");
             return ExitCode::FAILURE;
         }
-        Ok(args) => args,
     };
     if let Err(e) = bign_handheld_thumbnailer(&args) {
         eprintln!("{e}");
@@ -42,8 +42,11 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), Error> {
         return Ok(());
     }
 
-    // if it's not a `--version` command, then just extract the file params directly
-    let file_params = args.file_params().as_ref().unwrap();
+    // if it's not a `--version` command, then just extract the file params
+    let file_params = args
+        .file_params()
+        .as_ref()
+        .ok_or(Error::MissingFileParams)?;
     if file_params.is_dry_run() {
         eprintln!("Dry run mode, extracted icon will not be saved to a file!");
     }
@@ -79,31 +82,23 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), Error> {
         _ => return Err(Error::IncompatibleMimeType(mime_type.to_string())),
     };
 
-    // Whether to do optional scaling
-
+    // Whether to skip saving file
     if file_params.is_dry_run() {
         return Ok(());
     }
-
-    let output = match file_params.output_file() {
-        Some(data) => Path::new(data),
-        None => {
-            eprintln!("No output path, not saving any icon.");
-            return Ok(());
-        }
+    let Some(output) = file_params.output_file().as_ref().map(|p| Path::new(p)) else {
+        eprintln!("No output path, not saving any icon.");
+        return Ok(());
     };
-    match file_params.size() {
-        None => {
-            img.save_with_format(output, image::ImageFormat::Png)?;
-            Ok(())
-        }
-        Some(size) => {
-            let img = DynamicImage::ImageRgba8(img).resize(
-                size,
-                size,
-                image::imageops::FilterType::CatmullRom,
-            );
-            Ok(img.save_with_format(output, image::ImageFormat::Png)?)
-        }
-    }
+
+    // Whether to do optional scaling or save as-is
+    let image = if let Some(size) = file_params.size() {
+        DynamicImage::ImageRgba8(img).resize(size, size, image::imageops::FilterType::CatmullRom)
+    } else {
+        DynamicImage::ImageRgba8(img)
+    };
+
+    image.save_with_format(output, image::ImageFormat::Png)?;
+
+    Ok(())
 }
