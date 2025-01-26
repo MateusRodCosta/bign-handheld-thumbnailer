@@ -92,13 +92,12 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), Error> {
     };
 
     // Whether to do optional scaling or save as-is
-    let image = if let Some(size) = file_params.size() {
-        DynamicImage::ImageRgba8(img).resize(size, size, image::imageops::FilterType::CatmullRom)
+    let img = if let Some(size) = file_params.size() {
+        DynamicImage::ImageRgba8(img).resize(size, size, image::imageops::FilterType::Lanczos3)
     } else {
         DynamicImage::ImageRgba8(img)
     };
-
-    image.save_with_format(output, image::ImageFormat::Png)?;
+    img.save_with_format(output, image::ImageFormat::Png)?;
 
     Ok(())
 }
