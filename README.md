@@ -19,9 +19,11 @@ This project adheres to the [Freedesktop Thumbnail Managing Standard](https://sp
 
 ## How to install
 
+[![Packaging status](https://repology.org/badge/vertical-allrepos/bign-handheld-thumbnailer.svg?minversion=1.1.0)](https://repology.org/project/bign-handheld-thumbnailer/versions)
+
 ### From COPR (for Fedora)
 
-For users running Fedora 39, 40 or Rawhide (in either Atomic or non-Atomic variants), bign-handheld-thumbnailer has been packaged as a RPM.
+For users running Fedora 40, 41 or Rawhide (in either Atomic or non-Atomic variants), bign-handheld-thumbnailer has been packaged as a RPM.
 
 The RPMs can be downloaded from the [bign-handheld-thumbnailer COPR](https://copr.fedorainfracloud.org/coprs/mateusrodcosta/bign-handheld-thumbnailer/). For more info on how to install, refer to the COPR description.
 
