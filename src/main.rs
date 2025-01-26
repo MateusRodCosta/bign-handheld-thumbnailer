@@ -12,6 +12,7 @@ use nds::extract_nds_banner;
 use pico_args::Arguments;
 use std::fs::File;
 use std::{path::Path, process::ExitCode};
+use utils::get_mime_type;
 
 fn main() -> ExitCode {
     let args = Arguments::from_env();
@@ -47,9 +48,7 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), Error> {
         eprintln!("Dry run mode, extracted icon will not be saved to a file!");
     }
 
-    let input = Path::new(file_params.input_file());
-    let content_type = utils::content_type_guess(&Some(input), None);
-    let content_type = content_type.0.as_str();
+    let path = Path::new(file_params.input_file());
 
     /* There are currently two supported file types:
      * .nds roms, indicated by the application/x-nintendo-ds-rom mime type
@@ -63,8 +62,10 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), Error> {
     // You might want to check https://github.com/citra-emu/citra/blob/master/dist/citra.xml
     // for the Nintendo 3DS-related mime types as defined by the Citra emulator
 
-    let mut input = File::open(input)?;
-    let img = match content_type {
+    let mime_type = get_mime_type(path)?;
+    let mut input = File::open(path)?;
+
+    let img = match &mime_type[..] {
         "application/x-nintendo-ds-rom" => extract_nds_banner(&mut input)?.get_icon(),
         "application/x-ctr-cia" => SMDHIcon::from_cia(&mut input)?.get_large_icon(),
         "application/x-ctr-smdh" => SMDHIcon::from_smdh(&mut input)?.get_large_icon(),
@@ -75,7 +76,7 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), Error> {
         "application/x-ctr-cci" | "application/x-nintendo-3ds-rom" => {
             SMDHIcon::from_cci(&mut input)?.get_large_icon()
         }
-        _ => return Err(Error::InvalidContentType(content_type.to_string())),
+        _ => return Err(Error::IncompatibleMimeType(mime_type.to_string())),
     };
 
     // Whether to do optional scaling
