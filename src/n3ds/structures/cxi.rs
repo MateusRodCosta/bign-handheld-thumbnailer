@@ -1,4 +1,4 @@
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ExeFSFileHeader {
     file_name: [u8; 8],
     file_offset: u32,

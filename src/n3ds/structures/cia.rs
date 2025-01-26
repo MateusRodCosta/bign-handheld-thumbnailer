@@ -2,7 +2,7 @@ use std::io::{Read, Seek, SeekFrom};
 
 use crate::n3ds::errors::{CIAParsingError, ParsingError};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum CIAMetaSize {
     None,
     CVerUSA,
@@ -24,7 +24,7 @@ impl TryFrom<u32> for CIAMetaSize {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 enum CIASignatureType {
     Rsa4096Sha1,
     Rsa2048Sha1,
@@ -70,7 +70,7 @@ impl CIASignatureType {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CIATitleMetadata {
     content_chunk_records: Vec<CIAContentChunkRecord>,
 }
@@ -121,7 +121,7 @@ impl CIATitleMetadata {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum CIAContentIndex {
     MainContent,
     HomeMenuManual,
@@ -141,7 +141,7 @@ impl TryFrom<u16> for CIAContentIndex {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CIAContentChunkRecord {
     _content_id: u32,
     content_index: CIAContentIndex,

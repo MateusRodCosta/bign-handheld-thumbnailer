@@ -2,7 +2,7 @@ use image::{ImageBuffer, Rgba};
 
 use super::ParsingError;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct PaletteColor {
     pub r: u8,
     pub g: u8,
@@ -16,7 +16,7 @@ impl PaletteColor {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct NDSBannerDetails {
     _icon_version: NDSIconVersion,
     icon: ImageBuffer<Rgba<u8>, Vec<u8>>,
@@ -47,7 +47,7 @@ impl NDSBannerDetails {
 ///
 /// Do note that the animated DSi icon is not supported by this thumbnailer
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum NDSIconVersion {
     V1,
     V2,

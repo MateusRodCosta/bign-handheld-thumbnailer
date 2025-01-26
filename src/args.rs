@@ -2,7 +2,7 @@ use pico_args::Arguments;
 
 use crate::error::Error;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ThumbnailerArgs {
     show_version: bool,
     file_params: Option<ThumbnailerArgsFileParams>,
@@ -37,7 +37,7 @@ impl ThumbnailerArgs {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ThumbnailerArgsFileParams {
     is_dry_run: bool,
     size: Option<u32>,

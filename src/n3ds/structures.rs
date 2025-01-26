@@ -41,7 +41,7 @@ use cxi::ExeFSFileHeader;
  * Do also note that the extended header with a SMHD is optional for the .3dsx file format.
 */
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct SMDHIcon {
     large_icon: ImageBuffer<Rgba<u8>, Vec<u8>>,
 }

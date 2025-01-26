@@ -1,7 +1,7 @@
 use gio::ffi;
 use gio::glib::translate::{from_glib, from_glib_full, ToGlibPtr};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Rgb888 {
     r: u8,
     g: u8,

@@ -1,4 +1,4 @@
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CCIPartition {
     offset: u32,
     _length: u32,
