@@ -59,10 +59,10 @@ impl TryFrom<&Arguments> for ThumbnailerArgsFileParams {
 
         let input_file = args.free_from_str()?;
 
-        let output_file = if !is_dry_run {
-            Some(args.free_from_str()?)
-        } else {
+        let output_file = if is_dry_run {
             None
+        } else {
+            Some(args.free_from_str()?)
         };
 
         Ok(ThumbnailerArgsFileParams {

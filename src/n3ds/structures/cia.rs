@@ -41,12 +41,12 @@ impl TryFrom<u32> for CIASignatureType {
 
     fn try_from(value: u32) -> Result<Self, Self::Error> {
         match value {
-            0x010000 => Ok(CIASignatureType::Rsa4096Sha1),
-            0x010001 => Ok(CIASignatureType::Rsa2048Sha1),
-            0x010002 => Ok(CIASignatureType::EllipticCurveWithSHA1),
-            0x010003 => Ok(CIASignatureType::Rsa4096Sha256),
-            0x010004 => Ok(CIASignatureType::Rsa2048Sha256),
-            0x010005 => Ok(CIASignatureType::EcdsaWithSha256),
+            0x0001_0000 => Ok(CIASignatureType::Rsa4096Sha1),
+            0x0001_0001 => Ok(CIASignatureType::Rsa2048Sha1),
+            0x0001_0002 => Ok(CIASignatureType::EllipticCurveWithSHA1),
+            0x0001_0003 => Ok(CIASignatureType::Rsa4096Sha256),
+            0x0001_0004 => Ok(CIASignatureType::Rsa2048Sha256),
+            0x0001_0005 => Ok(CIASignatureType::EcdsaWithSha256),
             _ => Err(Self::Error::SignatureTypeInvalidValue(value)),
         }
     }

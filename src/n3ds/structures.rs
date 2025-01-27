@@ -70,6 +70,7 @@ impl SMDHIcon {
          * Many thanks to ihaveamac from the Nintendo Homebrew Discord for the help
          */
 
+        #[allow(clippy::cast_possible_truncation)]
         let mut img = RgbaImage::new(LARGE_ICON_WIDTH as u32, LARGE_ICON_HEIGHT as u32);
 
         for y in 0..LARGE_ICON_HEIGHT {
@@ -83,6 +84,7 @@ impl SMDHIcon {
                         | ((y & 4) << 3));
 
                 let pixel = &large_icon_data[pixel_offset];
+                #[allow(clippy::cast_possible_truncation)]
                 img.put_pixel(
                     x as u32,
                     y as u32,

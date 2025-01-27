@@ -46,6 +46,7 @@ impl NDSBannerDetails {
 /// 0103h = With Chinese+Korean Titles and animated DSi icon
 ///
 /// Do note that the animated DSi icon is not supported by this thumbnailer
+#[allow(clippy::doc_markdown)]
 
 #[derive(Debug)]
 pub enum NDSIconVersion {
