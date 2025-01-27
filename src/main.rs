@@ -40,7 +40,6 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), ThumbnailerEr
     // if it's not a `--version` command, then just extract the file params
     let file_params = args
         .file_params()
-        .as_ref()
         .ok_or(ThumbnailerError::MissingFileParams)?;
     if file_params.is_dry_run() {
         eprintln!("Dry run mode, extracted icon will not be saved to a file!");
@@ -85,7 +84,7 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), ThumbnailerEr
     if file_params.is_dry_run() {
         return Ok(());
     }
-    let Some(output) = file_params.output_file().as_ref().map(Path::new) else {
+    let Some(output) = file_params.output_file() else {
         eprintln!("No output path, not saving any icon.");
         return Ok(());
     };

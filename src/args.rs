@@ -1,3 +1,5 @@
+use std::path::{Path, PathBuf};
+
 use pico_args::Arguments;
 
 use crate::error::ThumbnailerError;
@@ -32,8 +34,8 @@ impl ThumbnailerArgs {
     pub fn show_version(&self) -> bool {
         self.show_version
     }
-    pub fn file_params(&self) -> &Option<ThumbnailerArgsFileParams> {
-        &self.file_params
+    pub fn file_params(&self) -> Option<&ThumbnailerArgsFileParams> {
+        self.file_params.as_ref()
     }
 }
 
@@ -41,8 +43,8 @@ impl ThumbnailerArgs {
 pub struct ThumbnailerArgsFileParams {
     is_dry_run: bool,
     size: Option<u32>,
-    input_file: std::path::PathBuf,
-    output_file: Option<std::path::PathBuf>,
+    input_file: PathBuf,
+    output_file: Option<PathBuf>,
 }
 
 impl TryFrom<&Arguments> for ThumbnailerArgsFileParams {
@@ -79,10 +81,10 @@ impl ThumbnailerArgsFileParams {
     pub fn size(&self) -> Option<u32> {
         self.size
     }
-    pub fn input_file(&self) -> &std::path::PathBuf {
+    pub fn input_file(&self) -> &Path {
         &self.input_file
     }
-    pub fn output_file(&self) -> &Option<std::path::PathBuf> {
-        &self.output_file
+    pub fn output_file(&self) -> Option<&Path> {
+        self.output_file.as_deref()
     }
 }
