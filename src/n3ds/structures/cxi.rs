@@ -67,7 +67,7 @@ impl SMDHIcon {
 
         let mut exefs_offset = [0u8; 4];
         f.read_exact(&mut exefs_offset)?;
-        let exefs_offset: i64 = u32::from_le_bytes(exefs_offset).try_into().unwrap(); // in media units
+        let exefs_offset: i64 = u32::from_le_bytes(exefs_offset).into(); // in media units
         let exefs_offset = exefs_offset * CXI_MEDIA_UNIT_SIZE;
 
         let mut exefs_size = [0u8; 4];

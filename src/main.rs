@@ -74,14 +74,18 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), ThumbnailerEr
         "application/x-ctr-cci" | "application/x-nintendo-3ds-rom" => {
             SMDHIcon::from_cci(&mut input)?.get_large_icon()
         }
-        _ => return Err(ThumbnailerError::IncompatibleMimeType(mime_type.to_string())),
+        _ => {
+            return Err(ThumbnailerError::IncompatibleMimeType(
+                mime_type.to_string(),
+            ))
+        }
     };
 
     // Whether to skip saving file
     if file_params.is_dry_run() {
         return Ok(());
     }
-    let Some(output) = file_params.output_file().as_ref().map(|p| Path::new(p)) else {
+    let Some(output) = file_params.output_file().as_ref().map(Path::new) else {
         eprintln!("No output path, not saving any icon.");
         return Ok(());
     };
