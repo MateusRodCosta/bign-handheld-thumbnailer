@@ -1,6 +1,8 @@
 use std::io::{Read, Seek, SeekFrom};
 
-use crate::n3ds::errors::{CIAParsingError, ParsingError};
+use crate::n3ds::errors::{CIAParsingError, CXIParsingError, ParsingError};
+
+use super::SMDHIcon;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum CIAMetaSize {
@@ -178,5 +180,106 @@ impl CIAContentChunkRecord {
     }
     pub fn content_type(&self) -> u16 {
         self.content_type
+    }
+}
+
+impl SMDHIcon {
+    pub fn from_cia<T: Read + Seek>(f: &mut T) -> Result<Self, ParsingError> {
+        /*
+         * The meta section isn't in a fixed place and is located after a bunch of sections whose
+         * size can vary, therefore it's needed to at the very last fetch the other sizes and
+         * take the padding into account
+         */
+
+        const CIA_HEADER_CERTIFICATE_CHAIN_SIZE_OFFSET: u64 = 0x08;
+        const CIA_HEADER_SIZE: u64 = 0x2040;
+        const CIA_PADDING_SIZE: u64 = 0x40;
+
+        f.seek(SeekFrom::Start(CIA_HEADER_CERTIFICATE_CHAIN_SIZE_OFFSET))?;
+        let mut certificate_chain_size = [0u8; 4];
+        f.read_exact(&mut certificate_chain_size)?;
+        let certificate_chain_size: u64 = u32::from_le_bytes(certificate_chain_size).into();
+
+        let mut ticket_size = [0u8; 4];
+        f.read_exact(&mut ticket_size)?;
+        let ticket_size: u64 = u32::from_le_bytes(ticket_size).into();
+
+        let mut tmd_size = [0u8; 4];
+        f.read_exact(&mut tmd_size)?;
+        let tmd_size: u64 = u32::from_le_bytes(tmd_size).into();
+
+        let mut meta_size = [0u8; 4];
+        f.read_exact(&mut meta_size)?;
+        let meta_size = u32::from_le_bytes(meta_size);
+        let meta_size = CIAMetaSize::try_from(meta_size)?;
+
+        let mut content_size = [0u8; 8];
+        f.read_exact(&mut content_size)?;
+        let content_size: u64 = u64::from_le_bytes(content_size);
+
+        let certificate_chain_size_with_padding =
+            certificate_chain_size.next_multiple_of(CIA_PADDING_SIZE);
+        let ticket_size_with_padding = ticket_size.next_multiple_of(CIA_PADDING_SIZE);
+        let tmd_size_with_padding = tmd_size.next_multiple_of(CIA_PADDING_SIZE);
+        let content_size_with_padding = content_size.next_multiple_of(CIA_PADDING_SIZE);
+
+        if meta_size == CIAMetaSize::Present {
+            let offset_meta: u64 = CIA_HEADER_SIZE
+                + certificate_chain_size_with_padding
+                + ticket_size_with_padding
+                + tmd_size_with_padding
+                + content_size_with_padding;
+
+            f.seek(SeekFrom::Start(offset_meta))?;
+            let meta_smdh_icon = SMDHIcon::from_cia_meta(f)?;
+            return Ok(meta_smdh_icon);
+        }
+        eprintln!("CIA Meta section not present, attempting CIA's CXI..");
+
+        let offset_tmd: u64 =
+            CIA_HEADER_SIZE + certificate_chain_size_with_padding + ticket_size_with_padding;
+        f.seek(SeekFrom::Start(offset_tmd))?;
+
+        let offset_content: u64 = CIA_HEADER_SIZE
+            + certificate_chain_size_with_padding
+            + ticket_size_with_padding
+            + tmd_size_with_padding;
+
+        match SMDHIcon::from_cia_tmd(f, offset_content) {
+            Ok(icon) => Ok(icon),
+            Err(error) => {
+                eprintln!("Failed to parse SMDH from CIA's CXI");
+                Err(error)
+            }
+        }
+    }
+
+    pub fn from_cia_meta<T: Read + Seek>(f: &mut T) -> Result<Self, ParsingError> {
+        const CIA_META_SMDH_OFFSET: i64 = 0x400;
+        f.seek_relative(CIA_META_SMDH_OFFSET)?;
+        let smdh_icon = SMDHIcon::from_smdh(f)?;
+        Ok(smdh_icon)
+    }
+
+    pub fn from_cia_tmd<T: Read + Seek>(
+        f: &mut T,
+        content_offset: u64,
+    ) -> Result<Self, ParsingError> {
+        let title_metadata = CIATitleMetadata::from_file(f)?;
+
+        f.seek(SeekFrom::Start(content_offset))?;
+        let Some(cxi_content) = title_metadata
+            .content_chunk_records()
+            .iter()
+            .find(|item| *item.content_index() == CIAContentIndex::MainContent)
+        else {
+            return Err(CIAParsingError::NoIconAvailable(CXIParsingError::NoCXIContent).into());
+        };
+
+        if (cxi_content.content_type() & 0x1) != 0 {
+            return Err(CIAParsingError::NoIconAvailable(CXIParsingError::FileEncrypted).into());
+        };
+
+        SMDHIcon::from_cxi(f)
     }
 }
