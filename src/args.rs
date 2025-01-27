@@ -1,6 +1,6 @@
 use pico_args::Arguments;
 
-use crate::error::Error;
+use crate::error::ThumbnailerError;
 
 #[derive(Debug)]
 pub struct ThumbnailerArgs {
@@ -9,7 +9,7 @@ pub struct ThumbnailerArgs {
 }
 
 impl TryFrom<&Arguments> for ThumbnailerArgs {
-    type Error = Error;
+    type Error = ThumbnailerError;
 
     fn try_from(arguments: &Arguments) -> Result<Self, Self::Error> {
         let mut args = arguments.clone();
@@ -46,7 +46,7 @@ pub struct ThumbnailerArgsFileParams {
 }
 
 impl TryFrom<&Arguments> for ThumbnailerArgsFileParams {
-    type Error = Error;
+    type Error = ThumbnailerError;
 
     fn try_from(arguments: &Arguments) -> Result<Self, Self::Error> {
         let mut args = arguments.clone();

@@ -5,7 +5,7 @@ mod cxi;
 use image::{ImageBuffer, Rgba, RgbaImage};
 use std::io::{Read, Seek, SeekFrom};
 
-use crate::n3ds::errors::ParsingError;
+use crate::n3ds::errors::N3DSParsingError;
 use crate::utils::Rgb888;
 
 /*
@@ -96,14 +96,14 @@ impl SMDHIcon {
 }
 
 impl SMDHIcon {
-    pub fn from_smdh<T: Read + Seek>(f: &mut T) -> Result<Self, ParsingError> {
+    pub fn from_smdh<T: Read + Seek>(f: &mut T) -> Result<Self, N3DSParsingError> {
         const SMDH_LARGE_ICON_OFFSET: i64 = 0x24C0;
         const SMDH_LARGE_ICON_SIZE: usize = 0x1200;
 
         let mut smdh_magic = [0u8; 4];
         f.read_exact(&mut smdh_magic)?;
         if b"SMDH" != &smdh_magic {
-            return Err(ParsingError::FileMagicNotFound("SMDH", smdh_magic));
+            return Err(N3DSParsingError::FileMagicNotFound("SMDH", smdh_magic));
         }
 
         f.seek_relative(SMDH_LARGE_ICON_OFFSET - 4)?;
@@ -114,20 +114,20 @@ impl SMDHIcon {
         })
     }
 
-    pub fn from_n3dsx<T: Read + Seek>(f: &mut T) -> Result<Self, ParsingError> {
+    pub fn from_n3dsx<T: Read + Seek>(f: &mut T) -> Result<Self, N3DSParsingError> {
         const N3DSX_EXTENDED_HEADER_OFFSET: u64 = 0x20;
 
         let mut n3dsx_magic = [0u8; 4];
         f.read_exact(&mut n3dsx_magic)?;
         if b"3DSX" != &n3dsx_magic {
-            return Err(ParsingError::FileMagicNotFound("3DSX", n3dsx_magic));
+            return Err(N3DSParsingError::FileMagicNotFound("3DSX", n3dsx_magic));
         }
 
         let mut header_size = [0u8; 2];
         f.read_exact(&mut header_size)?;
         let header_size = u16::from_le_bytes(header_size);
         if header_size <= 32 {
-            return Err(ParsingError::N3DSXParsingError3DSXNoExtendedHeader(
+            return Err(N3DSParsingError::N3DSXParsingError3DSXNoExtendedHeader(
                 header_size,
             ));
         }

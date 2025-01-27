@@ -1,6 +1,6 @@
 use image::{ImageBuffer, Rgba};
 
-use super::ParsingError;
+use super::errors::NDSParsingError;
 
 #[derive(Debug)]
 pub struct PaletteColor {
@@ -56,7 +56,7 @@ pub enum NDSIconVersion {
 }
 
 impl TryFrom<u16> for NDSIconVersion {
-    type Error = ParsingError;
+    type Error = NDSParsingError;
 
     fn try_from(value: u16) -> Result<Self, Self::Error> {
         match value {

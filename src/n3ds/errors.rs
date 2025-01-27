@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-pub enum ParsingError {
+pub enum N3DSParsingError {
     #[error("{0} magic not found! Found: {1:#04X?}")]
     FileMagicNotFound(&'static str, [u8; 4]),
     #[error("No extended header on 3DSX file. Found header size is {0}")]

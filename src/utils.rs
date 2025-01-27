@@ -2,7 +2,7 @@ use std::path::Path;
 
 use gio::{prelude::FileExt, Cancellable};
 
-use crate::error::MimeTypeErrors;
+use crate::error::MimeTypeDetectionError;
 
 #[derive(Debug)]
 pub struct Rgb888 {
@@ -71,7 +71,7 @@ impl Rgb888 {
     }
 }
 
-pub fn get_mime_type(input: &Path) -> Result<String, MimeTypeErrors> {
+pub fn get_mime_type(input: &Path) -> Result<String, MimeTypeDetectionError> {
     let file = gio::File::for_path(input);
     let attrs = format!("{}", gio::FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE);
     let file_info = file
@@ -84,7 +84,7 @@ pub fn get_mime_type(input: &Path) -> Result<String, MimeTypeErrors> {
     let mime_type = file_info
         .content_type()
         .and_then(|c| gio::functions::content_type_get_mime_type(&c))
-        .ok_or(MimeTypeErrors::InvalidMimeType)?;
+        .ok_or(MimeTypeDetectionError::MimeTypeDetectionFailure)?;
 
     Ok(mime_type.to_string())
 }

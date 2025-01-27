@@ -1,6 +1,6 @@
 use std::io::{Read, Seek, SeekFrom};
 
-use crate::n3ds::errors::{CIAParsingError, CXIParsingError, ParsingError};
+use crate::n3ds::errors::{CIAParsingError, CXIParsingError, N3DSParsingError};
 
 use super::SMDHIcon;
 
@@ -78,7 +78,7 @@ pub struct CIATitleMetadata {
 }
 
 impl CIATitleMetadata {
-    pub fn from_file<T: Read + Seek>(f: &mut T) -> Result<Self, ParsingError> {
+    pub fn from_file<T: Read + Seek>(f: &mut T) -> Result<Self, N3DSParsingError> {
         const TITLE_METADATA_HEADER_CONTENT_COUNT_OFFSET: i64 = 0x9E;
         const CONTENT_CHUNK_RECORDS_OFFSET: u64 = 0x9C4;
         const CONTENT_CHUNK_RECORD_SIZE: usize = 0x30;
@@ -184,7 +184,7 @@ impl CIAContentChunkRecord {
 }
 
 impl SMDHIcon {
-    pub fn from_cia<T: Read + Seek>(f: &mut T) -> Result<Self, ParsingError> {
+    pub fn from_cia<T: Read + Seek>(f: &mut T) -> Result<Self, N3DSParsingError> {
         /*
          * The meta section isn't in a fixed place and is located after a bunch of sections whose
          * size can vary, therefore it's needed to at the very last fetch the other sizes and
@@ -254,7 +254,7 @@ impl SMDHIcon {
         }
     }
 
-    pub fn from_cia_meta<T: Read + Seek>(f: &mut T) -> Result<Self, ParsingError> {
+    pub fn from_cia_meta<T: Read + Seek>(f: &mut T) -> Result<Self, N3DSParsingError> {
         const CIA_META_SMDH_OFFSET: i64 = 0x400;
         f.seek_relative(CIA_META_SMDH_OFFSET)?;
         let smdh_icon = SMDHIcon::from_smdh(f)?;
@@ -264,7 +264,7 @@ impl SMDHIcon {
     pub fn from_cia_tmd<T: Read + Seek>(
         f: &mut T,
         content_offset: u64,
-    ) -> Result<Self, ParsingError> {
+    ) -> Result<Self, N3DSParsingError> {
         let title_metadata = CIATitleMetadata::from_file(f)?;
 
         f.seek(SeekFrom::Start(content_offset))?;

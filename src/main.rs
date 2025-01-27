@@ -5,7 +5,7 @@ mod nds;
 mod utils;
 
 use args::ThumbnailerArgs;
-use error::Error;
+use error::ThumbnailerError;
 use image::DynamicImage;
 use n3ds::structures::SMDHIcon;
 use nds::extract_nds_banner;
@@ -27,7 +27,7 @@ fn main() -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), Error> {
+fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), ThumbnailerError> {
     if args.show_version() {
         const NAME: &str = env!("CARGO_PKG_NAME");
         const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -41,7 +41,7 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), Error> {
     let file_params = args
         .file_params()
         .as_ref()
-        .ok_or(Error::MissingFileParams)?;
+        .ok_or(ThumbnailerError::MissingFileParams)?;
     if file_params.is_dry_run() {
         eprintln!("Dry run mode, extracted icon will not be saved to a file!");
     }
@@ -74,7 +74,7 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), Error> {
         "application/x-ctr-cci" | "application/x-nintendo-3ds-rom" => {
             SMDHIcon::from_cci(&mut input)?.get_large_icon()
         }
-        _ => return Err(Error::IncompatibleMimeType(mime_type.to_string())),
+        _ => return Err(ThumbnailerError::IncompatibleMimeType(mime_type.to_string())),
     };
 
     // Whether to skip saving file

@@ -3,7 +3,7 @@ mod structures;
 
 use crate::utils::Rgb888;
 
-use self::errors::ParsingError;
+use self::errors::NDSParsingError;
 use image::{ImageBuffer, Rgba, RgbaImage};
 use std::io::{Read, Seek, SeekFrom};
 use structures::{NDSBannerDetails, NDSIconVersion, PaletteColor};
@@ -19,7 +19,7 @@ use structures::{NDSBannerDetails, NDSIconVersion, PaletteColor};
  * as the thumbnailer specification doesn't support animations.
 */
 
-pub fn extract_nds_banner<T: Read + Seek>(f: &mut T) -> Result<NDSBannerDetails, ParsingError> {
+pub fn extract_nds_banner<T: Read + Seek>(f: &mut T) -> Result<NDSBannerDetails, NDSParsingError> {
     const NDS_HEADER_BANNER_OFFSET_OFFSET: u64 = 0x068;
     const NDS_BANNER_SIZE: usize = 0x240;
 

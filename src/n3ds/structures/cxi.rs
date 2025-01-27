@@ -1,7 +1,7 @@
 use std::io::{Read, Seek};
 
 use crate::n3ds::{
-    errors::{CXIParsingError, ParsingError},
+    errors::{CXIParsingError, N3DSParsingError},
     structures::SMDHIcon,
 };
 
@@ -42,7 +42,7 @@ impl ExeFSFileHeader {
 }
 
 impl SMDHIcon {
-    pub fn from_cxi<T: Read + Seek>(f: &mut T) -> Result<Self, ParsingError> {
+    pub fn from_cxi<T: Read + Seek>(f: &mut T) -> Result<Self, N3DSParsingError> {
         const CXI_HEADER_MAGIC_OFFSET: i64 = 0x100;
         const CXI_HEADER_FLAGS_OFFSET: i64 = 0x188;
         const CXI_HEADER_EXEFS_OFFSET_VALUE: i64 = 0x1A0;
@@ -52,7 +52,7 @@ impl SMDHIcon {
         let mut cxi_magic = [0u8; 4];
         f.read_exact(&mut cxi_magic)?;
         if b"NCCH" != &cxi_magic {
-            return Err(ParsingError::FileMagicNotFound("NCCH", cxi_magic));
+            return Err(N3DSParsingError::FileMagicNotFound("NCCH", cxi_magic));
         }
 
         f.seek_relative(CXI_HEADER_FLAGS_OFFSET - (CXI_HEADER_MAGIC_OFFSET + 4))?;
@@ -78,7 +78,7 @@ impl SMDHIcon {
         Ok(smdh_icon)
     }
 
-    pub fn from_exefs<T: Read + Seek>(f: &mut T) -> Result<Self, ParsingError> {
+    pub fn from_exefs<T: Read + Seek>(f: &mut T) -> Result<Self, N3DSParsingError> {
         const EXEFS_HEADER_FILE_HEADERS_SIZE: usize = 0xA0;
         const EXEFS_HEADER_SIZE: i64 = 0x200;
 
