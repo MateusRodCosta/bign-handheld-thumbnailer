@@ -144,10 +144,37 @@ impl TryFrom<u16> for CIAContentIndex {
 }
 
 #[derive(Debug)]
+pub struct CIAContentType {
+    encrypted: bool,
+    _disc: bool,
+    _cfm: bool,
+    _optional: bool,
+    _shared: bool,
+}
+
+impl From<u16> for CIAContentType {
+    fn from(value: u16) -> Self {
+        CIAContentType {
+            encrypted: (value & 0x1) != 0,
+            _disc: (value & 0x2) != 0,
+            _cfm: (value & 0x4) != 0,
+            _optional: (value & 0x4000) != 0,
+            _shared: (value & 0x8000) != 0,
+        }
+    }
+}
+
+impl CIAContentType {
+    pub fn is_encrypted(&self) -> bool {
+        self.encrypted
+    }
+}
+
+#[derive(Debug)]
 pub struct CIAContentChunkRecord {
     _content_id: u32,
     content_index: CIAContentIndex,
-    content_type: u16,
+    content_type: CIAContentType,
     _content_size: u64,
     _sha256_hash: [u8; 0x20],
 }
@@ -164,6 +191,7 @@ impl CIAContentChunkRecord {
         let sha256_hash: [u8; 0x20] = content_chunk_record_bytes[0x10..].try_into().unwrap();
 
         let content_index = CIAContentIndex::try_from(content_index)?;
+        let content_type = CIAContentType::from(content_type);
 
         let content_info_record = CIAContentChunkRecord {
             _content_id: content_id,
@@ -178,8 +206,8 @@ impl CIAContentChunkRecord {
     pub fn content_index(&self) -> &CIAContentIndex {
         &self.content_index
     }
-    pub fn content_type(&self) -> u16 {
-        self.content_type
+    pub fn content_type(&self) -> &CIAContentType {
+        &self.content_type
     }
 }
 
@@ -276,7 +304,7 @@ impl SMDHIcon {
             return Err(CIAParsingError::NoIconAvailable(CXIParsingError::NoCXIContent).into());
         };
 
-        if (cxi_content.content_type() & 0x1) != 0 {
+        if cxi_content.content_type().is_encrypted() {
             return Err(CIAParsingError::NoIconAvailable(CXIParsingError::FileEncrypted).into());
         };
 

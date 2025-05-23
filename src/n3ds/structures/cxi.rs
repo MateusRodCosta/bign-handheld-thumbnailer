@@ -1,8 +1,10 @@
+mod ncch_flags;
+
 use std::io::{Read, Seek};
 
 use crate::n3ds::{
     errors::{CXIParsingError, N3DSParsingError},
-    structures::SMDHIcon,
+    structures::{cxi::ncch_flags::NCCHFlags, SMDHIcon},
 };
 
 #[derive(Debug)]
@@ -58,8 +60,9 @@ impl SMDHIcon {
         f.seek_relative(CXI_HEADER_FLAGS_OFFSET - (CXI_HEADER_MAGIC_OFFSET + 4))?;
         let mut flags = [0u8; 8];
         f.read_exact(&mut flags)?;
-        let flags_index_7 = flags[7];
-        if (flags_index_7 & 0x4) != 0x4 {
+        let flags = NCCHFlags::from(flags);
+        let security_flags = flags.security_flags();
+        if !security_flags.is_not_encrypted() {
             return Err(CXIParsingError::FileEncrypted.into());
         }
 
