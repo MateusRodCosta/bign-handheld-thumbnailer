@@ -102,7 +102,7 @@ impl CIATitleMetadata {
             header_position + CONTENT_CHUNK_RECORDS_OFFSET,
         ))?;
 
-        let mut content_chunk_records: Vec<_> = vec![];
+        let mut content_chunk_records: Vec<CIAContentChunkRecord> = Vec::with_capacity(content_count.into());
 
         for _ in 0..content_count {
             let mut content_chunk_record = [0u8; CONTENT_CHUNK_RECORD_SIZE];

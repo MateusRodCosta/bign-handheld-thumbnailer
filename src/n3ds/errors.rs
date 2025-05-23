@@ -10,8 +10,6 @@ pub enum N3DSParsingError {
     CXIParsingError(#[from] CXIParsingError),
     #[error(transparent)]
     CIAParsingError(#[from] CIAParsingError),
-    #[error("Error getting Executable Content (CXI) partition!")]
-    CCIErrorGettingExecutableContentPartition,
     #[error(transparent)]
     IoError(#[from] std::io::Error),
 }

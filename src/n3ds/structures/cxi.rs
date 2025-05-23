@@ -73,8 +73,8 @@ impl SMDHIcon {
         let exefs_offset: i64 = u32::from_le_bytes(exefs_offset).into(); // in media units
         let exefs_offset = exefs_offset * CXI_MEDIA_UNIT_SIZE;
 
-        let mut exefs_size = [0u8; 4];
-        f.read_exact(&mut exefs_size)?;
+        let mut _exefs_size = [0u8; 4];
+        f.read_exact(&mut _exefs_size)?;
 
         f.seek_relative(exefs_offset - (CXI_HEADER_EXEFS_OFFSET_VALUE + 4 + 4))?;
         let smdh_icon = SMDHIcon::from_exefs(f)?;
