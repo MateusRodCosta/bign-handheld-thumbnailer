@@ -43,8 +43,8 @@ pub struct SMDHIcon {
 }
 
 impl SMDHIcon {
-    pub fn get_large_icon(&self) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
-        self.large_icon.clone()
+    pub fn get_large_icon(&self) -> &ImageBuffer<Rgba<u8>, Vec<u8>> {
+        &self.large_icon
     }
 
     fn generate_icon_from_bytes(large_icon_bytes: &[u8; 0x1200]) -> ImageBuffer<Rgba<u8>, Vec<u8>> {

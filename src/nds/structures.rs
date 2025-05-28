@@ -33,8 +33,8 @@ impl NDSBannerDetails {
         }
     }
 
-    pub fn get_icon(&self) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
-        self.icon.clone()
+    pub fn get_icon(&self) -> &ImageBuffer<Rgba<u8>, Vec<u8>> {
+        &self.icon
     }
 }
 

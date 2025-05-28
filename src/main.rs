@@ -63,15 +63,15 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), ThumbnailerEr
     let mut input = File::open(path)?;
 
     let img = match &mime_type[..] {
-        "application/x-nintendo-ds-rom" => extract_nds_banner(&mut input)?.get_icon(),
-        "application/x-ctr-cia" => SMDHIcon::from_cia(&mut input)?.get_large_icon(),
-        "application/x-ctr-smdh" => SMDHIcon::from_smdh(&mut input)?.get_large_icon(),
+        "application/x-nintendo-ds-rom" => extract_nds_banner(&mut input)?.get_icon().clone(),
+        "application/x-ctr-cia" => SMDHIcon::from_cia(&mut input)?.get_large_icon().clone(),
+        "application/x-ctr-smdh" => SMDHIcon::from_smdh(&mut input)?.get_large_icon().clone(),
         "application/x-ctr-3dsx" | "application/x-nintendo-3ds-executable" => {
-            SMDHIcon::from_n3dsx(&mut input)?.get_large_icon()
+            SMDHIcon::from_n3dsx(&mut input)?.get_large_icon().clone()
         }
-        "application/x-ctr-cxi" => SMDHIcon::from_cxi(&mut input)?.get_large_icon(),
+        "application/x-ctr-cxi" => SMDHIcon::from_cxi(&mut input)?.get_large_icon().clone(),
         "application/x-ctr-cci" | "application/x-nintendo-3ds-rom" => {
-            SMDHIcon::from_cci(&mut input)?.get_large_icon()
+            SMDHIcon::from_cci(&mut input)?.get_large_icon().clone()
         }
         _ => {
             return Err(ThumbnailerError::IncompatibleMimeType(
