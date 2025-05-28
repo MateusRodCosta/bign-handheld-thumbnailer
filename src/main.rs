@@ -62,15 +62,24 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), ThumbnailerEr
     let mime_type = get_mime_type(path)?;
     let mut input = File::open(path)?;
 
+    const MIME_TYPE_NDS: &str = "application/x-nintendo-ds-rom";
+    const MIME_TYPE_N3DS_CIA: &str = "application/x-ctr-cia";
+    const MIME_TYPE_N3DS_SMDH: &str = "application/x-ctr-smdh";
+    const MIME_TYPE_N3DS_3DSX: &str = "application/x-ctr-3dsx";
+    const MIME_TYPE_N3DS_3DSX_GENERIC: &str = "application/x-nintendo-3ds-executable";
+    const MIME_TYPE_N3DS_CXI: &str = "application/x-ctr-cxi";
+    const MIME_TYPE_N3DS_CCI: &str = "application/x-ctr-cci";
+    const MIME_TYPE_N3DS_CCI_GENERIC: &str = "application/x-nintendo-3ds-rom";
+
     let img = match &mime_type[..] {
-        "application/x-nintendo-ds-rom" => extract_nds_banner(&mut input)?.get_icon().clone(),
-        "application/x-ctr-cia" => SMDHIcon::from_cia(&mut input)?.get_large_icon().clone(),
-        "application/x-ctr-smdh" => SMDHIcon::from_smdh(&mut input)?.get_large_icon().clone(),
-        "application/x-ctr-3dsx" | "application/x-nintendo-3ds-executable" => {
+        MIME_TYPE_NDS => extract_nds_banner(&mut input)?.get_icon().clone(),
+        MIME_TYPE_N3DS_CIA => SMDHIcon::from_cia(&mut input)?.get_large_icon().clone(),
+        MIME_TYPE_N3DS_SMDH => SMDHIcon::from_smdh(&mut input)?.get_large_icon().clone(),
+        MIME_TYPE_N3DS_3DSX | MIME_TYPE_N3DS_3DSX_GENERIC => {
             SMDHIcon::from_n3dsx(&mut input)?.get_large_icon().clone()
-        }
-        "application/x-ctr-cxi" => SMDHIcon::from_cxi(&mut input)?.get_large_icon().clone(),
-        "application/x-ctr-cci" | "application/x-nintendo-3ds-rom" => {
+                }
+        MIME_TYPE_N3DS_CXI => SMDHIcon::from_cxi(&mut input)?.get_large_icon().clone(),
+        MIME_TYPE_N3DS_CCI | MIME_TYPE_N3DS_CCI_GENERIC => {
             SMDHIcon::from_cci(&mut input)?.get_large_icon().clone()
         }
         _ => {
