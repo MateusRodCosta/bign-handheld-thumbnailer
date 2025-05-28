@@ -102,14 +102,13 @@ impl CIATitleMetadata {
             header_position + CONTENT_CHUNK_RECORDS_OFFSET,
         ))?;
 
-        let mut content_chunk_records: Vec<CIAContentChunkRecord> = Vec::with_capacity(content_count.into());
-
-        for _ in 0..content_count {
-            let mut content_chunk_record = [0u8; CONTENT_CHUNK_RECORD_SIZE];
-            f.read_exact(&mut content_chunk_record)?;
-            let content_chunk_record = CIAContentChunkRecord::from_bytes(&content_chunk_record)?;
-            content_chunk_records.push(content_chunk_record);
-        }
+        let content_chunk_records  = (0..content_count)
+            .map(|_| {
+                let mut content_chunk_record = [0u8; CONTENT_CHUNK_RECORD_SIZE];
+                f.read_exact(&mut content_chunk_record)?;
+                Ok(CIAContentChunkRecord::from_bytes(&content_chunk_record)?)
+            })
+            .collect::<Result<Vec<_>,N3DSParsingError>>()?;
 
         let title_metadata = CIATitleMetadata {
             content_chunk_records,
@@ -118,7 +117,7 @@ impl CIATitleMetadata {
         Ok(title_metadata)
     }
 
-    pub fn content_chunk_records(&self) -> &Vec<CIAContentChunkRecord> {
+    pub fn content_chunk_records(&self) -> &[CIAContentChunkRecord] {
         &self.content_chunk_records
     }
 }
@@ -277,7 +276,7 @@ impl SMDHIcon {
             Ok(icon) => Ok(icon),
             Err(error) => {
                 eprintln!("Failed to parse SMDH from CIA's CXI");
-                Err(error)
+                Err(error.into())
             }
         }
     }
