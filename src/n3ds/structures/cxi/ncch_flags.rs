@@ -1,37 +1,24 @@
 use bitflags::bitflags;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct NCCHFlags {
-    _crypto_method: NCCHCryptoMethodFlags,
-    _content_type: NCCHContentTypeFlags,
-    security: NCCHSecurityFlags,
+    pub crypto_method: NCCHCryptoMethodFlags,
+    pub content_type: NCCHContentTypeFlags,
+    pub security: NCCHSecurityFlags,
 }
 
 impl From<[u8; 8]> for NCCHFlags {
     fn from(value: [u8; 8]) -> Self {
         NCCHFlags {
-            _crypto_method: NCCHCryptoMethodFlags::from(value[3]),
-            _content_type: NCCHContentTypeFlags::from_bits_truncate(value[5]),
+            crypto_method: NCCHCryptoMethodFlags::from(value[3]),
+            content_type: NCCHContentTypeFlags::from_bits_truncate(value[5]),
             security: NCCHSecurityFlags::from_bits_truncate(value[7]),
         }
     }
 }
 
-impl NCCHFlags {
-    pub fn _crypto_method(&self) -> &NCCHCryptoMethodFlags {
-        &self._crypto_method
-    }
-
-    pub fn _content_type(&self) -> &NCCHContentTypeFlags {
-        &self._content_type
-    }
-
-    pub fn security_flags(&self) -> &NCCHSecurityFlags {
-        &self.security
-    }
-}
-
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(u8)]
 pub enum NCCHCryptoMethodFlags {
     Invalid,
     Initial,
@@ -67,11 +54,11 @@ bitflags! {
 }
 
 impl NCCHContentTypeFlags {
-    fn _is_cfa(&self) -> bool {
+    pub fn is_cfa(&self) -> bool {
         self.contains(Self::DATA) && !self.contains(Self::EXECUTABLE)
     }
 
-    fn _is_cxi(&self) -> bool {
+    pub fn is_cxi(&self) -> bool {
         self.contains(Self::EXECUTABLE)
     }
 }
