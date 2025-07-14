@@ -1,3 +1,4 @@
+use bitflags::bitflags;
 use std::io::{Read, Seek, SeekFrom};
 
 use crate::n3ds::errors::{CIAParsingError, CXIParsingError, N3DSParsingError};
@@ -79,21 +80,25 @@ pub struct CIATitleMetadata {
 
 impl CIATitleMetadata {
     pub fn from_file<T: Read + Seek>(f: &mut T) -> Result<Self, N3DSParsingError> {
-        const TITLE_METADATA_HEADER_CONTENT_COUNT_OFFSET: i64 = 0x9E;
+        const TITLE_METADATA_HEADER_CONTENT_COUNT_OFFSET: u64 = 0x9E;
         const CONTENT_CHUNK_RECORDS_OFFSET: u64 = 0x9C4;
         const CONTENT_CHUNK_RECORD_SIZE: usize = 0x30;
+
+        let tmd_start_pos = f.stream_position()?;
 
         let mut signature_type = [0u8; 4];
         f.read_exact(&mut signature_type)?;
         let signature_type = u32::from_be_bytes(signature_type);
         let signature_type = CIASignatureType::try_from(signature_type)?;
 
-        let signature_full_size: i64 = (signature_type.size() + signature_type.padding_size())
+        let signature_full_size: u64 = (signature_type.size() + signature_type.padding_size())
             .try_into()
             .unwrap();
-        let header_position = f.seek(SeekFrom::Current(signature_full_size))?;
+        let header_position = tmd_start_pos + signature_full_size;
 
-        f.seek_relative(TITLE_METADATA_HEADER_CONTENT_COUNT_OFFSET)?;
+        f.seek(SeekFrom::Start(
+            header_position + TITLE_METADATA_HEADER_CONTENT_COUNT_OFFSET,
+        ))?;
         let mut content_count = [0u8; 2];
         f.read_exact(&mut content_count)?;
         let content_count = u16::from_be_bytes(content_count);
@@ -102,19 +107,17 @@ impl CIATitleMetadata {
             header_position + CONTENT_CHUNK_RECORDS_OFFSET,
         ))?;
 
-        let content_chunk_records  = (0..content_count)
+        let content_chunk_records = (0..content_count)
             .map(|_| {
                 let mut content_chunk_record = [0u8; CONTENT_CHUNK_RECORD_SIZE];
                 f.read_exact(&mut content_chunk_record)?;
                 Ok(CIAContentChunkRecord::from_bytes(&content_chunk_record)?)
             })
-            .collect::<Result<Vec<_>,N3DSParsingError>>()?;
+            .collect::<Result<Vec<_>, N3DSParsingError>>()?;
 
-        let title_metadata = CIATitleMetadata {
+        Ok(CIATitleMetadata {
             content_chunk_records,
-        };
-
-        Ok(title_metadata)
+        })
     }
 
     pub fn content_chunk_records(&self) -> &[CIAContentChunkRecord] {
@@ -142,40 +145,31 @@ impl TryFrom<u16> for CIAContentIndex {
     }
 }
 
-#[derive(Debug)]
-pub struct CIAContentType {
-    encrypted: bool,
-    _disc: bool,
-    _cfm: bool,
-    _optional: bool,
-    _shared: bool,
-}
-
-impl From<u16> for CIAContentType {
-    fn from(value: u16) -> Self {
-        CIAContentType {
-            encrypted: (value & 0x1) != 0,
-            _disc: (value & 0x2) != 0,
-            _cfm: (value & 0x4) != 0,
-            _optional: (value & 0x4000) != 0,
-            _shared: (value & 0x8000) != 0,
-        }
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct CIAContentType: u16 {
+        const ENCRYPTED = 0x0001;
+        const DISC = 0x0002;
+        const CFM = 0x0004;
+        const OPTIONAL = 0x4000;
+        const SHARED = 0x8000;
     }
 }
 
 impl CIAContentType {
     pub fn is_encrypted(&self) -> bool {
-        self.encrypted
+        self.contains(Self::ENCRYPTED)
     }
 }
 
 #[derive(Debug)]
 pub struct CIAContentChunkRecord {
-    _content_id: u32,
-    content_index: CIAContentIndex,
-    content_type: CIAContentType,
-    _content_size: u64,
-    _sha256_hash: [u8; 0x20],
+    pub content_id: u32,
+    pub content_index: CIAContentIndex,
+    pub content_type: CIAContentType,
+    pub content_size: u64,
+    pub sha256_hash: [u8; 0x20],
 }
 
 impl CIAContentChunkRecord {
@@ -190,23 +184,15 @@ impl CIAContentChunkRecord {
         let sha256_hash: [u8; 0x20] = content_chunk_record_bytes[0x10..].try_into().unwrap();
 
         let content_index = CIAContentIndex::try_from(content_index)?;
-        let content_type = CIAContentType::from(content_type);
+        let content_type = CIAContentType::from_bits_truncate(content_type);
 
-        let content_info_record = CIAContentChunkRecord {
-            _content_id: content_id,
+        Ok(CIAContentChunkRecord {
+            content_id,
             content_index,
             content_type,
-            _content_size: content_size,
-            _sha256_hash: sha256_hash,
-        };
-        Ok(content_info_record)
-    }
-
-    pub fn content_index(&self) -> &CIAContentIndex {
-        &self.content_index
-    }
-    pub fn content_type(&self) -> &CIAContentType {
-        &self.content_type
+            content_size,
+            sha256_hash,
+        })
     }
 }
 
@@ -282,10 +268,11 @@ impl SMDHIcon {
     }
 
     pub fn from_cia_meta<T: Read + Seek>(f: &mut T) -> Result<Self, N3DSParsingError> {
-        const CIA_META_SMDH_OFFSET: i64 = 0x400;
-        f.seek_relative(CIA_META_SMDH_OFFSET)?;
-        let smdh_icon = SMDHIcon::from_smdh(f)?;
-        Ok(smdh_icon)
+        const CIA_META_SMDH_OFFSET: u64 = 0x400;
+        let meta_start_pos = f.stream_position()?;
+
+        f.seek(SeekFrom::Start(meta_start_pos + CIA_META_SMDH_OFFSET))?;
+        Self::from_smdh(f)
     }
 
     pub fn from_cia_tmd<T: Read + Seek>(
@@ -298,15 +285,14 @@ impl SMDHIcon {
         let Some(cxi_content) = title_metadata
             .content_chunk_records()
             .iter()
-            .find(|item| *item.content_index() == CIAContentIndex::MainContent)
+            .find(|item| item.content_index == CIAContentIndex::MainContent)
         else {
             return Err(CIAParsingError::NoIconAvailable(CXIParsingError::NoCXIContent).into());
         };
 
-        if cxi_content.content_type().is_encrypted() {
+        if cxi_content.content_type.is_encrypted() {
             return Err(CIAParsingError::NoIconAvailable(CXIParsingError::FileEncrypted).into());
         };
-
         SMDHIcon::from_cxi(f)
     }
 }
