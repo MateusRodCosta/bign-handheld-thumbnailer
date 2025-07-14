@@ -2,10 +2,10 @@ use std::io::{Read, Seek, SeekFrom};
 
 use crate::n3ds::{errors::N3DSParsingError, structures::SMDHIcon};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct CCIPartition {
-    offset: u32,
-    _length: u32,
+    pub offset: u32,
+    pub length: u32,
 }
 
 impl CCIPartition {
@@ -20,12 +20,8 @@ impl CCIPartition {
 
         CCIPartition {
             offset,
-            _length: length,
+            length,
         }
-    }
-
-    pub fn offset(&self) -> u32 {
-        self.offset
     }
 }
 
@@ -34,11 +30,12 @@ impl SMDHIcon {
         const CCI_HEADER_MAGIC_OFFSET: u64 = 0x100;
         const CCI_HEADER_PARTITION_TABLE_OFFSET: u64 = 0x120;
         const CCI_HEADER_PARTITION_TABLE_SIZE: usize = 0x40;
+        const CCI_MAGIC: &[u8] = b"NCSD";
 
         f.seek(SeekFrom::Start(CCI_HEADER_MAGIC_OFFSET))?;
         let mut cci_magic = [0u8; 4];
         f.read_exact(&mut cci_magic)?;
-        if b"NCSD" != &cci_magic {
+        if CCI_MAGIC != &cci_magic {
             return Err(N3DSParsingError::FileMagicNotFound("NCSD", cci_magic));
         }
         f.seek(SeekFrom::Start(CCI_HEADER_PARTITION_TABLE_OFFSET))?;
@@ -53,7 +50,7 @@ impl SMDHIcon {
             .unwrap();
         let first_partition = &partition_table[0];
 
-        f.seek(SeekFrom::Start(first_partition.offset().into()))?;
+        f.seek(SeekFrom::Start(first_partition.offset.into()))?;
         let smdh_icon = SMDHIcon::from_cxi(f)?;
         Ok(smdh_icon)
     }
