@@ -2,7 +2,7 @@ use image::{ImageBuffer, Rgba};
 
 use super::errors::NDSParsingError;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PaletteColor {
     pub r: u8,
     pub g: u8,
@@ -10,16 +10,10 @@ pub struct PaletteColor {
     pub a: u8,
 }
 
-impl PaletteColor {
-    pub fn new(r: u8, g: u8, b: u8, a: u8) -> PaletteColor {
-        PaletteColor { r, g, b, a }
-    }
-}
-
 #[derive(Debug)]
 pub struct NDSBannerDetails {
-    _icon_version: NDSIconVersion,
-    icon: ImageBuffer<Rgba<u8>, Vec<u8>>,
+    pub icon_version: NDSIconVersion,
+    pub icon: ImageBuffer<Rgba<u8>, Vec<u8>>,
 }
 
 impl NDSBannerDetails {
@@ -28,13 +22,9 @@ impl NDSBannerDetails {
         icon: ImageBuffer<Rgba<u8>, Vec<u8>>,
     ) -> NDSBannerDetails {
         NDSBannerDetails {
-            _icon_version: icon_version,
+            icon_version,
             icon,
         }
-    }
-
-    pub fn get_icon(&self) -> &ImageBuffer<Rgba<u8>, Vec<u8>> {
-        &self.icon
     }
 }
 
@@ -48,7 +38,7 @@ impl NDSBannerDetails {
 /// Do note that the animated DSi icon is not supported by this thumbnailer
 #[allow(clippy::doc_markdown)]
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NDSIconVersion {
     V1,
     V2,

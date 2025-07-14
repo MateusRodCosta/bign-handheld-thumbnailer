@@ -52,12 +52,12 @@ fn extract_palette_colors(palette_raw: &[u8; 0x20]) -> [PaletteColor; 0x20 / 2] 
 
     let mut palette_colors: [PaletteColor; 0x20 / 2] = colors_converted
         .map(|palette_color| {
-            PaletteColor::new(
-                palette_color.r(),
-                palette_color.g(),
-                palette_color.b(),
-                0xFF,
-            )
+            PaletteColor{
+                r: palette_color.r(),
+                g: palette_color.g(),
+                b: palette_color.b(),
+                a: 0xFF,
+            }
         })
         .collect::<Vec<_>>()
         .try_into()

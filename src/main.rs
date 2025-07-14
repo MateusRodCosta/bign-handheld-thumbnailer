@@ -72,7 +72,7 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), ThumbnailerEr
     const MIME_TYPE_N3DS_CCI_GENERIC: &str = "application/x-nintendo-3ds-rom";
 
     let img = match &mime_type[..] {
-        MIME_TYPE_NDS => extract_nds_banner(&mut input)?.get_icon().clone(),
+        MIME_TYPE_NDS => extract_nds_banner(&mut input)?.icon,
         MIME_TYPE_N3DS_CIA => SMDHIcon::from_cia(&mut input)?.get_large_icon().clone(),
         MIME_TYPE_N3DS_SMDH => SMDHIcon::from_smdh(&mut input)?.get_large_icon().clone(),
         MIME_TYPE_N3DS_3DSX | MIME_TYPE_N3DS_3DSX_GENERIC => {
