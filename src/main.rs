@@ -73,14 +73,14 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), ThumbnailerEr
 
     let img = match &mime_type[..] {
         MIME_TYPE_NDS => extract_nds_banner(&mut input)?.icon,
-        MIME_TYPE_N3DS_CIA => SMDHIcon::from_cia(&mut input)?.get_large_icon().clone(),
-        MIME_TYPE_N3DS_SMDH => SMDHIcon::from_smdh(&mut input)?.get_large_icon().clone(),
+        MIME_TYPE_N3DS_CIA => SMDHIcon::from_cia(&mut input)?.large_icon,
+        MIME_TYPE_N3DS_SMDH => SMDHIcon::from_smdh(&mut input)?.large_icon,
         MIME_TYPE_N3DS_3DSX | MIME_TYPE_N3DS_3DSX_GENERIC => {
-            SMDHIcon::from_n3dsx(&mut input)?.get_large_icon().clone()
-                }
-        MIME_TYPE_N3DS_CXI => SMDHIcon::from_cxi(&mut input)?.get_large_icon().clone(),
+            SMDHIcon::from_n3dsx(&mut input)?.large_icon
+        }
+        MIME_TYPE_N3DS_CXI => SMDHIcon::from_cxi(&mut input)?.large_icon,
         MIME_TYPE_N3DS_CCI | MIME_TYPE_N3DS_CCI_GENERIC => {
-            SMDHIcon::from_cci(&mut input)?.get_large_icon().clone()
+            SMDHIcon::from_cci(&mut input)?.large_icon
         }
         _ => {
             return Err(ThumbnailerError::IncompatibleMimeType(
