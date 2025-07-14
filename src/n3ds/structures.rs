@@ -99,8 +99,10 @@ impl SMDHIcon {
 
 impl SMDHIcon {
     pub fn from_smdh<T: Read + Seek>(f: &mut T) -> Result<Self, N3DSParsingError> {
-        const SMDH_LARGE_ICON_OFFSET: i64 = 0x24C0;
+        const SMDH_LARGE_ICON_OFFSET: u64 = 0x24C0;
         const SMDH_LARGE_ICON_SIZE: usize = 0x1200;
+
+        let smdh_start_pos = f.stream_position()?;
 
         let mut smdh_magic = [0u8; 4];
         f.read_exact(&mut smdh_magic)?;
@@ -108,7 +110,7 @@ impl SMDHIcon {
             return Err(N3DSParsingError::FileMagicNotFound("SMDH", smdh_magic));
         }
 
-        f.seek_relative(SMDH_LARGE_ICON_OFFSET - 4)?;
+        f.seek(SeekFrom::Start(smdh_start_pos + SMDH_LARGE_ICON_OFFSET))?;
         let mut large_icon_bytes = [0u8; SMDH_LARGE_ICON_SIZE];
         f.read_exact(&mut large_icon_bytes)?;
         Ok(SMDHIcon {
