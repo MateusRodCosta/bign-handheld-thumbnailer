@@ -100,7 +100,7 @@ impl SMDHIcon {
 
         let icon_pos = exefs_start_pos + EXEFS_HEADER_TOTAL_SIZE + u64::from(icon_file.file_offset);
 
-        f.seek(SeekFrom::Start((icon_pos)))?;
+        f.seek(SeekFrom::Start(icon_pos))?;
         let smdh_icon = Self::from_smdh(f)?;
         Ok(smdh_icon)
     }
