@@ -1,5 +1,7 @@
 use bitflags::bitflags;
 
+use crate::n3ds::errors::CXIParsingError;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct NCCHFlags {
     pub crypto_method: NCCHCryptoMethodFlags,
@@ -7,34 +9,37 @@ pub struct NCCHFlags {
     pub security: NCCHSecurityFlags,
 }
 
-impl From<[u8; 8]> for NCCHFlags {
-    fn from(value: [u8; 8]) -> Self {
-        NCCHFlags {
-            crypto_method: NCCHCryptoMethodFlags::from(value[3]),
+impl TryFrom<[u8; 8]> for NCCHFlags {
+    type Error = CXIParsingError;
+
+    fn try_from(value: [u8; 8]) -> Result<Self, Self::Error> {
+        Ok(NCCHFlags {
+            crypto_method: NCCHCryptoMethodFlags::try_from(value[3])?,
             content_type: NCCHContentTypeFlags::from_bits_truncate(value[5]),
             security: NCCHSecurityFlags::from_bits_truncate(value[7]),
-        }
+        })
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum NCCHCryptoMethodFlags {
-    Invalid,
-    Initial,
-    KeyY,
-    New3DSArm9Loader,
-    New3DSArmLoaderChanged,
+    Initial = 0x00,
+    KeyY = 0x01,
+    New3DSArm9Loader = 0x0A,
+    New3DSArmLoaderChanged = 0x0B,
 }
 
-impl From<u8> for NCCHCryptoMethodFlags {
-    fn from(value: u8) -> Self {
+impl TryFrom<u8> for NCCHCryptoMethodFlags {
+    type Error = CXIParsingError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
-            0x00 => NCCHCryptoMethodFlags::Initial,
-            0x01 => NCCHCryptoMethodFlags::KeyY,
-            0x0A => NCCHCryptoMethodFlags::New3DSArm9Loader,
-            0x0B => NCCHCryptoMethodFlags::New3DSArmLoaderChanged,
-            _ => NCCHCryptoMethodFlags::Invalid,
+            0x00 => Ok(Self::Initial),
+            0x01 => Ok(Self::KeyY),
+            0x0A => Ok(Self::New3DSArm9Loader),
+            0x0B => Ok(Self::New3DSArmLoaderChanged),
+            _ => Err(Self::Error::InvalidNCCHCryptoMethodFlags),
         }
     }
 }

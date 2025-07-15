@@ -59,7 +59,7 @@ impl SMDHIcon {
         f.seek(SeekFrom::Start(cxi_start_pos + CXI_HEADER_FLAGS_OFFSET))?;
         let mut flags = [0u8; 8];
         f.read_exact(&mut flags)?;
-        let flags = NCCHFlags::from(flags);
+        let flags = NCCHFlags::try_from(flags)?;
         let security_flags = flags.security;
         if !security_flags.is_not_encrypted() {
             return Err(CXIParsingError::FileEncrypted.into());

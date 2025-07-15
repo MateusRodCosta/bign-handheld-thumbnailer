@@ -32,6 +32,8 @@ pub enum CXIParsingError {
     NoCXIContent,
     #[error("CXI file (usually internal to a CCI or CIA) is encrypted, consider using decrypted files instead.")]
     FileEncrypted,
+    #[error("Invalid NCCH Crypto Method Flags.")]
+    InvalidNCCHCryptoMethodFlags,
     #[error("Error finding icon file inside ExeFS!")]
     ExeFSIconFileNotFound,
 }
