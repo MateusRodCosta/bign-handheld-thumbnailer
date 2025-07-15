@@ -244,8 +244,7 @@ impl SMDHIcon {
                 + content_size_with_padding;
 
             f.seek(SeekFrom::Start(offset_meta))?;
-            let meta_smdh_icon = Self::from_cia_meta(f)?;
-            return Ok(meta_smdh_icon);
+            return Self::from_cia_meta(f);
         }
         eprintln!("CIA Meta section not present, attempting CIA's CXI..");
 
@@ -258,13 +257,10 @@ impl SMDHIcon {
             + ticket_size_with_padding
             + tmd_size_with_padding;
 
-        match Self::from_cia_tmd(f, offset_content) {
-            Ok(icon) => Ok(icon),
-            Err(error) => {
-                eprintln!("Failed to parse SMDH from CIA's CXI");
-                Err(error.into())
-            }
-        }
+        Self::from_cia_tmd(f, offset_content).or_else(|error| {
+            eprintln!("Failed to parse SMDH from CIA's CXI");
+            Err(error.into())
+        })
     }
 
     pub fn from_cia_meta<T: Read + Seek>(f: &mut T) -> Result<Self, N3DSParsingError> {

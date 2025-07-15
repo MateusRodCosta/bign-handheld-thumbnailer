@@ -142,7 +142,6 @@ impl SMDHIcon {
         let _smdh_size = u32::from_le_bytes(smdh_size);
 
         f.seek(SeekFrom::Start(smdh_offset.into()))?;
-        let smdh_icon = Self::from_smdh(f)?;
-        Ok(smdh_icon)
+        Self::from_smdh(f)
     }
 }

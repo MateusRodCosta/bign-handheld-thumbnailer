@@ -51,7 +51,6 @@ impl SMDHIcon {
         let first_partition = &partition_table[0];
 
         f.seek(SeekFrom::Start(first_partition.offset.into()))?;
-        let smdh_icon = Self::from_cxi(f)?;
-        Ok(smdh_icon)
+        Self::from_cxi(f)
     }
 }

@@ -78,8 +78,7 @@ impl SMDHIcon {
         f.read_exact(&mut _exefs_size)?;
 
         f.seek(SeekFrom::Start(cxi_start_pos + exefs_offset))?;
-        let smdh_icon = Self::from_exefs(f)?;
-        Ok(smdh_icon)
+        Self::from_exefs(f)
     }
 
     pub fn from_exefs<T: Read + Seek>(f: &mut T) -> Result<Self, N3DSParsingError> {
@@ -101,7 +100,6 @@ impl SMDHIcon {
         let icon_pos = exefs_start_pos + EXEFS_HEADER_TOTAL_SIZE + u64::from(icon_file.file_offset);
 
         f.seek(SeekFrom::Start(icon_pos))?;
-        let smdh_icon = Self::from_smdh(f)?;
-        Ok(smdh_icon)
+        Self::from_smdh(f)
     }
 }
