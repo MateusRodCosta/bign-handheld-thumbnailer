@@ -53,7 +53,10 @@ impl SMDHIcon {
         let mut cxi_magic = [0u8; 4];
         f.read_exact(&mut cxi_magic)?;
         if CXI_MAGIC_STR.as_bytes() != &cxi_magic {
-            return Err(N3DSParsingError::FileMagicNotFound(CXI_MAGIC_STR, cxi_magic));
+            return Err(N3DSParsingError::FileMagicNotFound(
+                CXI_MAGIC_STR,
+                cxi_magic,
+            ));
         }
 
         f.seek(SeekFrom::Start(cxi_start_pos + CXI_HEADER_FLAGS_OFFSET))?;
@@ -84,7 +87,7 @@ impl SMDHIcon {
     pub fn from_exefs<T: Read + Seek>(f: &mut T) -> Result<Self, N3DSParsingError> {
         const EXEFS_FILE_HEADERS_BLOCK_SIZE: usize = 0xA0;
         const EXEFS_HEADER_TOTAL_SIZE: u64 = 0x200;
-        const ICON_FILENAME: &[u8] = b"icon";
+        const ICON_FILENAME_STR: &str = "icon";
 
         let exefs_start_pos = f.stream_position()?;
 
@@ -94,7 +97,7 @@ impl SMDHIcon {
         let icon_file = file_headers
             .chunks_exact(16)
             .filter_map(|chunk| ExeFSFileHeader::from_bytes(chunk.try_into().unwrap()))
-            .find(|item| item.file_name() == ICON_FILENAME)
+            .find(|item| item.file_name() == ICON_FILENAME_STR.as_bytes())
             .ok_or(CXIParsingError::ExeFSIconFileNotFound)?;
 
         let icon_pos = exefs_start_pos + EXEFS_HEADER_TOTAL_SIZE + u64::from(icon_file.file_offset);
