@@ -244,7 +244,7 @@ impl SMDHIcon {
                 + content_size_with_padding;
 
             f.seek(SeekFrom::Start(offset_meta))?;
-            let meta_smdh_icon = SMDHIcon::from_cia_meta(f)?;
+            let meta_smdh_icon = Self::from_cia_meta(f)?;
             return Ok(meta_smdh_icon);
         }
         eprintln!("CIA Meta section not present, attempting CIA's CXI..");
@@ -258,7 +258,7 @@ impl SMDHIcon {
             + ticket_size_with_padding
             + tmd_size_with_padding;
 
-        match SMDHIcon::from_cia_tmd(f, offset_content) {
+        match Self::from_cia_tmd(f, offset_content) {
             Ok(icon) => Ok(icon),
             Err(error) => {
                 eprintln!("Failed to parse SMDH from CIA's CXI");
@@ -293,6 +293,6 @@ impl SMDHIcon {
         if cxi_content.content_type.is_encrypted() {
             return Err(CIAParsingError::NoIconAvailable(CXIParsingError::FileEncrypted).into());
         };
-        SMDHIcon::from_cxi(f)
+        Self::from_cxi(f)
     }
 }

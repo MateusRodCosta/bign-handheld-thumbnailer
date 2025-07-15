@@ -109,8 +109,8 @@ impl SMDHIcon {
         f.seek(SeekFrom::Start(smdh_start_pos + SMDH_LARGE_ICON_OFFSET))?;
         let mut large_icon_bytes = [0u8; SMDH_LARGE_ICON_SIZE];
         f.read_exact(&mut large_icon_bytes)?;
-        Ok(SMDHIcon {
-            large_icon: SMDHIcon::generate_icon_from_bytes(&large_icon_bytes),
+        Ok(Self {
+            large_icon: Self::generate_icon_from_bytes(&large_icon_bytes),
         })
     }
 
@@ -142,7 +142,7 @@ impl SMDHIcon {
         let _smdh_size = u32::from_le_bytes(smdh_size);
 
         f.seek(SeekFrom::Start(smdh_offset.into()))?;
-        let smdh_icon = SMDHIcon::from_smdh(f)?;
+        let smdh_icon = Self::from_smdh(f)?;
         Ok(smdh_icon)
     }
 }
