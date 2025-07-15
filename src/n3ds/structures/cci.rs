@@ -30,13 +30,13 @@ impl SMDHIcon {
         const CCI_HEADER_MAGIC_OFFSET: u64 = 0x100;
         const CCI_HEADER_PARTITION_TABLE_OFFSET: u64 = 0x120;
         const CCI_HEADER_PARTITION_TABLE_SIZE: usize = 0x40;
-        const CCI_MAGIC: &[u8] = b"NCSD";
+        const CCI_MAGIC_STR: &str = "NCSD";
 
         f.seek(SeekFrom::Start(CCI_HEADER_MAGIC_OFFSET))?;
         let mut cci_magic = [0u8; 4];
         f.read_exact(&mut cci_magic)?;
-        if CCI_MAGIC != &cci_magic {
-            return Err(N3DSParsingError::FileMagicNotFound("NCSD", cci_magic));
+        if CCI_MAGIC_STR.as_bytes() != &cci_magic {
+            return Err(N3DSParsingError::FileMagicNotFound(CCI_MAGIC_STR, cci_magic));
         }
         f.seek(SeekFrom::Start(CCI_HEADER_PARTITION_TABLE_OFFSET))?;
         let mut partition_table = [0u8; CCI_HEADER_PARTITION_TABLE_SIZE];

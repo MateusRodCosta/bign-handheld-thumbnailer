@@ -45,15 +45,15 @@ impl SMDHIcon {
         const CXI_HEADER_FLAGS_OFFSET: u64 = 0x188;
         const CXI_HEADER_EXEFS_OFFSET_VALUE: u64 = 0x1A0;
         const CXI_MEDIA_UNIT_SIZE: u64 = 0x200;
-        const CXI_MAGIC: &[u8] = b"NCCH";
+        const CXI_MAGIC_STR: &str = "NCCH";
 
         let cxi_start_pos = f.stream_position()?;
 
         f.seek(SeekFrom::Start(cxi_start_pos + CXI_HEADER_MAGIC_OFFSET))?;
         let mut cxi_magic = [0u8; 4];
         f.read_exact(&mut cxi_magic)?;
-        if CXI_MAGIC != &cxi_magic {
-            return Err(N3DSParsingError::FileMagicNotFound("NCCH", cxi_magic));
+        if CXI_MAGIC_STR.as_bytes() != &cxi_magic {
+            return Err(N3DSParsingError::FileMagicNotFound(CXI_MAGIC_STR, cxi_magic));
         }
 
         f.seek(SeekFrom::Start(cxi_start_pos + CXI_HEADER_FLAGS_OFFSET))?;
