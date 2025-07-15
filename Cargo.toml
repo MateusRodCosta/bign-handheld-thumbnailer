@@ -1,6 +1,6 @@
 [package]
 name = "bign-handheld-thumbnailer"
-version = "1.1.2"
+version = "1.1.3"
 authors = ["Mateus Rodrigues Costa <mateusrodcosta@gmail.com>"]
 edition = "2021"
 description = "Thumbnailer for Nintendo handheld game consoles (DS and 3DS) roms and homebrew"
