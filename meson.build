@@ -45,7 +45,7 @@ configure_file(input : 'data/' + meson.project_name() + '.thumbnailer.in',
                install_dir : thumbnailers_dir)
 
 install_data(
-    'data/mime/bign-handheld-thumbnailer-3ds.xml',
+    'data/mime/bign-handheld-thumbnailer.xml',
     install_dir: get_option('datadir') / 'mime/packages',
 )
 
