@@ -6,7 +6,7 @@ use image::{ImageBuffer, Rgba, RgbaImage};
 use std::io::{Read, Seek, SeekFrom};
 
 use crate::n3ds::errors::N3DSParsingError;
-use crate::utils::Rgb888;
+use crate::utils::rgb888::Rgb888;
 
 /*
  * Intially SMDH, 3DSX and CIA files were supported.

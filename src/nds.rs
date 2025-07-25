@@ -1,7 +1,7 @@
 pub mod errors;
 mod structures;
 
-use crate::utils::Rgb888;
+use crate::utils::rgb888::Rgb888;
 
 use self::errors::NDSParsingError;
 use image::{ImageBuffer, Rgba, RgbaImage};
