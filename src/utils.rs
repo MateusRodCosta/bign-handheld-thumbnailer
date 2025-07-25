@@ -4,23 +4,11 @@ use gio::{prelude::FileExt, Cancellable};
 
 use crate::error::MimeTypeDetectionError;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Rgb888 {
-    r: u8,
-    g: u8,
-    b: u8,
-}
-
-impl Rgb888 {
-    pub fn r(&self) -> u8 {
-        self.r
-    }
-    pub fn g(&self) -> u8 {
-        self.g
-    }
-    pub fn b(&self) -> u8 {
-        self.b
-    }
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
 }
 
 impl Rgb888 {
@@ -49,7 +37,7 @@ impl Rgb888 {
 
     pub fn from_rgb565_bytes(color_bytes: [u8; 2]) -> Self {
         /*
-         * The 3DS icon usually uses BGR555 for color encoding, although others are also supported,
+         * The 3DS icon usually uses RGB565 for color encoding, although others are also supported,
          * but we need RGB888
          * So, each individual color must be isolated and converted to RGB888
          */
@@ -73,13 +61,8 @@ impl Rgb888 {
 
 pub fn get_mime_type(input: &Path) -> Result<String, MimeTypeDetectionError> {
     let file = gio::File::for_path(input);
-    let attrs = format!("{}", gio::FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE);
-    let file_info = file
-        .query_info(
-            attrs.as_str(),
-            gio::FileQueryInfoFlags::NONE,
-            Cancellable::NONE,
-        )?;
+    let attrs = gio::FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE;
+    let file_info = file.query_info(attrs, gio::FileQueryInfoFlags::NONE, Cancellable::NONE)?;
 
     let mime_type = file_info
         .content_type()

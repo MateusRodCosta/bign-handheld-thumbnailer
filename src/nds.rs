@@ -51,13 +51,11 @@ fn extract_palette_colors(palette_raw: &[u8; 0x20]) -> [PaletteColor; 0x20 / 2] 
         .map(|chunk| Rgb888::from_bgr555_bytes(chunk.try_into().unwrap()));
 
     let mut palette_colors: [PaletteColor; 0x20 / 2] = colors_converted
-        .map(|palette_color| {
-            PaletteColor{
-                r: palette_color.r(),
-                g: palette_color.g(),
-                b: palette_color.b(),
-                a: 0xFF,
-            }
+        .map(|palette_color| PaletteColor {
+            r: palette_color.r,
+            g: palette_color.g,
+            b: palette_color.b,
+            a: 0xFF,
         })
         .collect::<Vec<_>>()
         .try_into()

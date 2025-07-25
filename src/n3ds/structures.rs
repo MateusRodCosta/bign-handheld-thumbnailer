@@ -81,11 +81,7 @@ impl SMDHIcon {
 
                 let pixel = &large_icon_data[pixel_offset];
                 #[allow(clippy::cast_possible_truncation)]
-                img.put_pixel(
-                    x as u32,
-                    y as u32,
-                    Rgba([pixel.r(), pixel.g(), pixel.b(), 0xFF]),
-                );
+                img.put_pixel(x as u32, y as u32, Rgba([pixel.r, pixel.g, pixel.b, 0xFF]));
             }
         }
 
