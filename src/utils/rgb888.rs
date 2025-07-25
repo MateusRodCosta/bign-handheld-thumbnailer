@@ -1,18 +1,40 @@
 #[derive(Debug, Clone, Copy)]
+pub struct Bgr555(pub u16);
+
+impl From<[u8; 2]> for Bgr555 {
+    fn from(value: [u8; 2]) -> Self {
+        Self {
+            0: u16::from_le_bytes(value),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Rgb565(pub u16);
+
+impl From<[u8; 2]> for Rgb565 {
+    fn from(value: [u8; 2]) -> Self {
+        Self {
+            0: u16::from_le_bytes(value),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 pub struct Rgb888 {
     pub r: u8,
     pub g: u8,
     pub b: u8,
 }
 
-impl Rgb888 {
-    pub fn from_bgr555_bytes(color_bytes: [u8; 2]) -> Self {
+impl From<Bgr555> for Rgb888 {
+    fn from(value: Bgr555) -> Self {
         /*
          * The NDS palette uses BGR555 for color encoding but we need RGB888
          * So, each individual color must be isolated and converted to RGB888
          */
 
-        let color_bytes = u16::from_le_bytes(color_bytes);
+        let color_bytes = value.0;
 
         // Conversion code borrowed from
         // https://learn.microsoft.com/en-us/windows/win32/directshow/working-with-16-bit-rgb
@@ -26,17 +48,19 @@ impl Rgb888 {
         let g = green_value << 3;
         let r = red_value << 3;
 
-        Rgb888 { r, g, b }
+        Self { r, g, b }
     }
+}
 
-    pub fn from_rgb565_bytes(color_bytes: [u8; 2]) -> Self {
+impl From<Rgb565> for Rgb888 {
+    fn from(value: Rgb565) -> Self {
         /*
          * The 3DS icon usually uses RGB565 for color encoding, although others are also supported,
          * but we need RGB888
          * So, each individual color must be isolated and converted to RGB888
          */
 
-        let color_bytes = u16::from_le_bytes(color_bytes);
+        let color_bytes = value.0;
 
         // Conversion code borrowed from
         // https://learn.microsoft.com/en-us/windows/win32/directshow/working-with-16-bit-rgb
@@ -49,6 +73,6 @@ impl Rgb888 {
         let g = green_value << 2;
         let b = blue_value << 3;
 
-        Rgb888 { r, g, b }
+        Self { r, g, b }
     }
 }

@@ -6,7 +6,7 @@ use image::{ImageBuffer, Rgba, RgbaImage};
 use std::io::{Read, Seek, SeekFrom};
 
 use crate::n3ds::errors::N3DSParsingError;
-use crate::utils::rgb888::Rgb888;
+use crate::utils::rgb888::{Rgb565, Rgb888};
 
 /*
  * Intially SMDH, 3DSX and CIA files were supported.
@@ -55,7 +55,10 @@ impl SMDHIcon {
 
         let large_icon_data: [Rgb888; 0x1200 / 2] = large_icon_bytes
             .chunks_exact(2)
-            .map(|chunk| Rgb888::from_rgb565_bytes(chunk.try_into().unwrap()))
+            .map(|chunk| {
+                let bytes: [u8; 2] = chunk.try_into().unwrap();
+                Rgb888::from(Rgb565::from(bytes))
+            })
             .collect::<Vec<_>>()
             .try_into()
             .unwrap();

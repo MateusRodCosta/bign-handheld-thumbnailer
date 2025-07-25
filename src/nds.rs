@@ -1,7 +1,7 @@
 pub mod errors;
 mod structures;
 
-use crate::utils::rgb888::Rgb888;
+use crate::utils::rgb888::{Bgr555, Rgb888};
 
 use self::errors::NDSParsingError;
 use image::{ImageBuffer, Rgba, RgbaImage};
@@ -46,9 +46,10 @@ pub fn extract_nds_banner<T: Read + Seek>(f: &mut T) -> Result<NDSBannerDetails,
 
 fn extract_palette_colors(palette_raw: &[u8; 0x20]) -> [PaletteColor; 0x20 / 2] {
     // this unwrap will never fail: there's even length input.
-    let colors_converted = palette_raw
-        .chunks_exact(2)
-        .map(|chunk| Rgb888::from_bgr555_bytes(chunk.try_into().unwrap()));
+    let colors_converted = palette_raw.chunks_exact(2).map(|chunk| {
+        let bytes: [u8; 2] = chunk.try_into().unwrap();
+        Rgb888::from(Bgr555::from(bytes))
+    });
 
     let mut palette_colors: [PaletteColor; 0x20 / 2] = colors_converted
         .map(|palette_color| PaletteColor {
