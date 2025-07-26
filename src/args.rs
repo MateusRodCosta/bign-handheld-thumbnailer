@@ -6,8 +6,8 @@ use crate::error::ThumbnailerError;
 
 #[derive(Debug)]
 pub struct ThumbnailerArgs {
-    show_version: bool,
-    file_params: Option<ThumbnailerArgsFileParams>,
+    pub show_version: bool,
+    pub file_params: Option<ThumbnailerArgsFileParams>,
 }
 
 impl TryFrom<&Arguments> for ThumbnailerArgs {
@@ -30,21 +30,12 @@ impl TryFrom<&Arguments> for ThumbnailerArgs {
     }
 }
 
-impl ThumbnailerArgs {
-    pub fn show_version(&self) -> bool {
-        self.show_version
-    }
-    pub fn file_params(&self) -> Option<&ThumbnailerArgsFileParams> {
-        self.file_params.as_ref()
-    }
-}
-
 #[derive(Debug)]
 pub struct ThumbnailerArgsFileParams {
-    is_dry_run: bool,
-    size: Option<u32>,
-    input_file: PathBuf,
-    output_file: Option<PathBuf>,
+    pub is_dry_run: bool,
+    pub size: Option<u32>,
+    pub input_file: PathBuf,
+    pub output_file: Option<PathBuf>,
 }
 
 impl TryFrom<&Arguments> for ThumbnailerArgsFileParams {
@@ -71,20 +62,5 @@ impl TryFrom<&Arguments> for ThumbnailerArgsFileParams {
             input_file,
             output_file,
         })
-    }
-}
-
-impl ThumbnailerArgsFileParams {
-    pub fn is_dry_run(&self) -> bool {
-        self.is_dry_run
-    }
-    pub fn size(&self) -> Option<u32> {
-        self.size
-    }
-    pub fn input_file(&self) -> &Path {
-        &self.input_file
-    }
-    pub fn output_file(&self) -> Option<&Path> {
-        self.output_file.as_deref()
     }
 }

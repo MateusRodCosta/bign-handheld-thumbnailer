@@ -28,7 +28,7 @@ fn main() -> ExitCode {
 }
 
 fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), ThumbnailerError> {
-    if args.show_version() {
+    if args.show_version {
         const NAME: &str = env!("CARGO_PKG_NAME");
         const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -39,13 +39,14 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), ThumbnailerEr
 
     // if it's not a `--version` command, then just extract the file params
     let file_params = args
-        .file_params()
+        .file_params
+        .as_ref()
         .ok_or(ThumbnailerError::MissingFileParams)?;
-    if file_params.is_dry_run() {
+    if file_params.is_dry_run {
         eprintln!("Dry run mode, extracted icon will not be saved to a file!");
     }
 
-    let path = Path::new(file_params.input_file());
+    let path = Path::new(&file_params.input_file);
 
     /* There are currently two supported file types:
      * .nds roms, indicated by the application/x-nintendo-ds-rom mime type
@@ -90,16 +91,16 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), ThumbnailerEr
     };
 
     // Whether to skip saving file
-    if file_params.is_dry_run() {
+    if file_params.is_dry_run {
         return Ok(());
     }
-    let Some(output) = file_params.output_file() else {
+    let Some(output) = file_params.output_file.as_deref() else {
         eprintln!("No output path, not saving any icon.");
         return Ok(());
     };
 
     // Whether to do optional scaling or save as-is
-    let img = if let Some(size) = file_params.size() {
+    let img = if let Some(size) = file_params.size {
         DynamicImage::ImageRgba8(img).resize(size, size, image::imageops::FilterType::Lanczos3)
     } else {
         DynamicImage::ImageRgba8(img)
