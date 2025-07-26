@@ -11,7 +11,7 @@ use n3ds::structures::SMDHIcon;
 use nds::extract_nds_banner;
 use pico_args::Arguments;
 use std::fs::File;
-use std::{path::Path, process::ExitCode};
+use std::process::ExitCode;
 use utils::get_mime_type;
 
 fn main() -> ExitCode {
@@ -27,12 +27,16 @@ fn main() -> ExitCode {
     ExitCode::SUCCESS
 }
 
+fn show_version() {
+    const NAME: &str = env!("CARGO_PKG_NAME");
+    const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+    println!("{NAME} v{VERSION}");
+}
+
 fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), ThumbnailerError> {
     if args.show_version {
-        const NAME: &str = env!("CARGO_PKG_NAME");
-        const VERSION: &str = env!("CARGO_PKG_VERSION");
-
-        println!("{NAME} v{VERSION}");
+        show_version();
 
         return Ok(());
     }
@@ -46,7 +50,7 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), ThumbnailerEr
         eprintln!("Dry run mode, extracted icon will not be saved to a file!");
     }
 
-    let path = Path::new(&file_params.input_file);
+    let path = file_params.input_file.as_path();
 
     /* There are currently two supported file types:
      * .nds roms, indicated by the application/x-nintendo-ds-rom mime type
@@ -83,11 +87,7 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), ThumbnailerEr
         MIME_TYPE_N3DS_CCI | MIME_TYPE_N3DS_CCI_GENERIC => {
             SMDHIcon::from_cci(&mut input)?.large_icon
         }
-        _ => {
-            return Err(ThumbnailerError::IncompatibleMimeType(
-                mime_type.to_string(),
-            ))
-        }
+        _ => return Err(ThumbnailerError::IncompatibleMimeType(mime_type)),
     };
 
     // Whether to skip saving file
@@ -105,7 +105,7 @@ fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), ThumbnailerEr
     } else {
         DynamicImage::ImageRgba8(img)
     };
-    img.save_with_format(output, image::ImageFormat::Png)?;
 
+    img.save_with_format(output, image::ImageFormat::Png)?;
     Ok(())
 }
