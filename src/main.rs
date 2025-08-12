@@ -4,8 +4,6 @@ mod n3ds;
 mod nds;
 mod utils;
 
-use args::ThumbnailerArgs;
-use error::ThumbnailerError;
 use image::DynamicImage;
 use n3ds::structures::SMDHIcon;
 use nds::extract_nds_banner;
@@ -14,11 +12,16 @@ use std::fs::File;
 use std::process::ExitCode;
 use utils::get_mime_type;
 
+use crate::{
+    args::{ThumbnailerCommand, ThumbnailerFileParams},
+    error::ThumbnailerError,
+};
+
 fn main() -> ExitCode {
-    let args = Arguments::from_env();
+    let mut args = Arguments::from_env();
 
     if let Err(e) =
-        ThumbnailerArgs::try_from(&args).and_then(|args| bign_handheld_thumbnailer(&args))
+        ThumbnailerCommand::try_from(&mut args).and_then(|cmd| bign_handheld_thumbnailer(cmd))
     {
         eprintln!("{e}");
         return ExitCode::FAILURE;
@@ -27,25 +30,22 @@ fn main() -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn show_version() {
+fn bign_handheld_thumbnailer(cmd: ThumbnailerCommand) -> Result<(), ThumbnailerError> {
+    match cmd {
+        ThumbnailerCommand::ShowVersion => show_version(),
+        ThumbnailerCommand::GenerateThumbnail(file_params) => generate_thumbnail(file_params),
+    }
+}
+
+fn show_version() -> Result<(), ThumbnailerError> {
     const NAME: &str = env!("CARGO_PKG_NAME");
     const VERSION: &str = env!("CARGO_PKG_VERSION");
 
     println!("{NAME} v{VERSION}");
+    Ok(())
 }
 
-fn bign_handheld_thumbnailer(args: &ThumbnailerArgs) -> Result<(), ThumbnailerError> {
-    if args.show_version {
-        show_version();
-
-        return Ok(());
-    }
-
-    // if it's not a `--version` command, then just extract the file params
-    let file_params = args
-        .file_params
-        .as_ref()
-        .ok_or(ThumbnailerError::MissingFileParams)?;
+fn generate_thumbnail(file_params: ThumbnailerFileParams) -> Result<(), ThumbnailerError> {
     if file_params.is_dry_run {
         eprintln!("Dry run mode, extracted icon will not be saved to a file!");
     }

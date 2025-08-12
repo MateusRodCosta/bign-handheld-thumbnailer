@@ -7,8 +7,6 @@ use crate::nds::errors::NDSParsingError;
 pub enum ThumbnailerError {
     #[error("Error parsing arguments: {0}")]
     ArgumentParsingError(#[from] pico_args::Error),
-    #[error("File parameters are missing, aborting.")]
-    MissingFileParams,
     #[error("Mime type detection error: {0}")]
     MimeTypeDetectionError(#[from] MimeTypeDetectionError),
     #[error("Found {0}, which is not a supported Nintendo DS (.nds) or Nintendo 3DS (.cia/.smdh/.3dsx/.cxi/.cci/.3ds) file.")]
