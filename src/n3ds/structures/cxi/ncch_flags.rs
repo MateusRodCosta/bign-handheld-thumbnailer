@@ -39,7 +39,7 @@ impl TryFrom<u8> for NCCHCryptoMethodFlags {
             0x01 => Ok(Self::KeyY),
             0x0A => Ok(Self::New3DSArm9Loader),
             0x0B => Ok(Self::New3DSArmLoaderChanged),
-            _ => Err(Self::Error::InvalidNCCHCryptoMethodFlags),
+            _ => Err(Self::Error::InvalidNCCHCryptoMethodFlags(value)),
         }
     }
 }
