@@ -37,16 +37,9 @@ impl TryFrom<&mut Arguments> for ThumbnailerFileParams {
 
     fn try_from(args: &mut Arguments) -> Result<Self, Self::Error> {
         let is_dry_run = args.contains("-n");
-
         let size = args.opt_value_from_str("-s")?;
-
         let input_file = args.free_from_str()?;
-
-        let output_file = if is_dry_run {
-            None
-        } else {
-            Some(args.free_from_str()?)
-        };
+        let output_file = args.opt_free_from_str()?;
 
         Ok(Self {
             is_dry_run,
