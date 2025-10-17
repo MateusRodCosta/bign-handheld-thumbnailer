@@ -16,12 +16,12 @@ publish = false
 
 [dependencies]
 pico-args = "0.5.0"
-gio = "0.21.1"
+gio = "0.21.2"
 thiserror = "2.0.16"
-bitflags = "2.9.3"
+bitflags = "2.9.4"
 
 [dependencies.image]
-version = "0.25.6"
+version = "0.25.8"
 default-features = false
 features = ["png"]
 
