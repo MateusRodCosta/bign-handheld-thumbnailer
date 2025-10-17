@@ -15,5 +15,5 @@ pub fn get_mime_type(input: &Path) -> Result<String, ThumbnailerError> {
         .content_type()
         .ok_or(ThumbnailerError::MimeTypeDetectionFailure)?;
 
-    Ok(mime_type.to_string())
+    Ok(mime_type.into())
 }
