@@ -14,18 +14,20 @@ Licensed under GPLv2+.
   * NDS roms and homebrew (.nds) - DSi animated icons are not supported, the normal DS icon is used instead
 * Nintendo 3DS:
   * CIA installer files (.cia) - only if Meta section is present and contains a valid SMDH with a valid large icon
-  * SMDH metadata files (.smdh) - sometimes shipped separately for older homebrew, usually found inside most 3DS formats including modern homebrew
+  * SMDH metadata files (.smdh) - sometimes shipped separately for older homebrew, usually embedded on most 3DS formats (including modern homebrew)
   * 3DSX homebrew files (.3dsx) - only if extended header is present and contains a valid SMDH with valid large icon
   * CXI executable files (.cxi) - as long as the file is decrypted and it's possible to extract the icon file from the ExeFS
   * CCI cartridge dumps files (.cci, but more commonly .3ds) - as long it's possible to access the contained CXI and extract the icon from there (see above, may require a decrypted rom)
 
 ## How to install
 
-[![Packaging status](https://repology.org/badge/vertical-allrepos/bign-handheld-thumbnailer.svg?minversion=1.1.0)](https://repology.org/project/bign-handheld-thumbnailer/versions)
+[![Packaging status](https://repology.org/badge/vertical-allrepos/bign-handheld-thumbnailer.svg?minversion=1.2.0)](https://repology.org/project/bign-handheld-thumbnailer/versions)
 
 ### Fedora Linux
 
-For users running Fedora Linux 40+, bign-handheld-thumbnailer is available in the official repos as `bign-handheld-thumbnailer`.
+For users running Fedora Linux 40+, **bign-handheld-thumbnailer** is available in the official repos as `bign-handheld-thumbnailer`.
+
+It can be installed via `dnf install bign-handheld-thumbnailer` or `rpm-ostree install bign-handheld-thumbnailer` (for Atomic variants).
 
 ### Manual
 
