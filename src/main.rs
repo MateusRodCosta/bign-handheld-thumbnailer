@@ -20,9 +20,7 @@ use crate::{
 fn main() -> ExitCode {
     let mut args = Arguments::from_env();
 
-    if let Err(e) =
-        ThumbnailerCommand::try_from(&mut args).and_then(|cmd| bign_handheld_thumbnailer(cmd))
-    {
+    if let Err(e) = ThumbnailerCommand::try_from(&mut args).and_then(bign_handheld_thumbnailer) {
         eprintln!("{e}");
         return ExitCode::FAILURE;
     }

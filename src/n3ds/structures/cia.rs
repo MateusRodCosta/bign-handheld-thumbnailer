@@ -257,9 +257,8 @@ impl SMDHIcon {
             + ticket_size_with_padding
             + tmd_size_with_padding;
 
-        Self::from_cia_tmd(f, offset_content).or_else(|error| {
+        Self::from_cia_tmd(f, offset_content).inspect_err(|_| {
             eprintln!("Failed to parse SMDH from CIA's CXI");
-            Err(error.into())
         })
     }
 

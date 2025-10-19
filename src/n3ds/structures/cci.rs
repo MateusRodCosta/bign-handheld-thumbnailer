@@ -18,10 +18,7 @@ impl CCIPartition {
         let length = u32::from_le_bytes(partition_bytes[4..].try_into().unwrap()); //in media units
         let length = length * MEDIA_UNIT_SIZE;
 
-        CCIPartition {
-            offset,
-            length,
-        }
+        CCIPartition { offset, length }
     }
 }
 
@@ -35,8 +32,11 @@ impl SMDHIcon {
         f.seek(SeekFrom::Start(CCI_HEADER_MAGIC_OFFSET))?;
         let mut cci_magic = [0u8; 4];
         f.read_exact(&mut cci_magic)?;
-        if CCI_MAGIC_STR.as_bytes() != &cci_magic {
-            return Err(N3DSParsingError::FileMagicNotFound(CCI_MAGIC_STR, cci_magic));
+        if CCI_MAGIC_STR.as_bytes() != cci_magic {
+            return Err(N3DSParsingError::FileMagicNotFound(
+                CCI_MAGIC_STR,
+                cci_magic,
+            ));
         }
         f.seek(SeekFrom::Start(CCI_HEADER_PARTITION_TABLE_OFFSET))?;
         let mut partition_table = [0u8; CCI_HEADER_PARTITION_TABLE_SIZE];

@@ -52,7 +52,7 @@ impl SMDHIcon {
         f.seek(SeekFrom::Start(cxi_start_pos + CXI_HEADER_MAGIC_OFFSET))?;
         let mut cxi_magic = [0u8; 4];
         f.read_exact(&mut cxi_magic)?;
-        if CXI_MAGIC_STR.as_bytes() != &cxi_magic {
+        if CXI_MAGIC_STR.as_bytes() != cxi_magic {
             return Err(N3DSParsingError::FileMagicNotFound(
                 CXI_MAGIC_STR,
                 cxi_magic,

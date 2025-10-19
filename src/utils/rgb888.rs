@@ -3,9 +3,7 @@ pub struct Bgr555(pub u16);
 
 impl From<[u8; 2]> for Bgr555 {
     fn from(value: [u8; 2]) -> Self {
-        Self {
-            0: u16::from_le_bytes(value),
-        }
+        Self(u16::from_le_bytes(value))
     }
 }
 
@@ -14,9 +12,7 @@ pub struct Rgb565(pub u16);
 
 impl From<[u8; 2]> for Rgb565 {
     fn from(value: [u8; 2]) -> Self {
-        Self {
-            0: u16::from_le_bytes(value),
-        }
+        Self(u16::from_le_bytes(value))
     }
 }
 
