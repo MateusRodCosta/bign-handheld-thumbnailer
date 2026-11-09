@@ -65,7 +65,7 @@ impl RomFormat {
     }
 }
 
-pub fn get_mime_type(path: &Path, data: &[u8; 512]) -> Result<RomFormat, ThumbnailerError> {
+pub fn get_rom_format(path: &Path, data: &[u8; 512]) -> Result<RomFormat, ThumbnailerError> {
     RomFormat::detect_from_header(data)
         .or_else(|| RomFormat::detect_from_path(path))
         .ok_or(ThumbnailerError::RomFormatDetectionFailure)

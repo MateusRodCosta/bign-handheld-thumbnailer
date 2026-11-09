@@ -4,21 +4,22 @@ mod n3ds;
 mod nds;
 mod utils;
 
+use std::fs::File;
+use std::io::{Read, Seek};
+use std::process::ExitCode;
+
+use pico_args::Arguments;
 use image::{
     imageops::{self, FilterType},
     RgbaImage,
 };
-use n3ds::structures::SMDHIcon;
-use nds::extract_nds_banner;
-use pico_args::Arguments;
-use std::fs::File;
-use std::io::{Read, Seek};
-use std::process::ExitCode;
-use utils::get_mime_type;
 
-use crate::{
-    args::{ThumbnailerCommand, ThumbnailerFileParams}, error::ThumbnailerError, utils::RomFormat,
-};
+use crate::args::{ThumbnailerCommand, ThumbnailerFileParams};
+use crate::error::ThumbnailerError;
+use crate::utils::{RomFormat, get_rom_format};
+
+use crate::nds::extract_nds_banner;
+use crate::n3ds::structures::SMDHIcon;
 
 fn main() -> ExitCode {
     let mut args = Arguments::from_env();
@@ -100,7 +101,7 @@ fn generate_thumbnail(file_params: ThumbnailerFileParams) -> Result<(), Thumbnai
 
     input.rewind()?;
 
-    let rom_format = get_mime_type(path, &header_bytes)?;
+    let rom_format = get_rom_format(path, &header_bytes)?;
 
     let img = match rom_format {
         RomFormat::Nds => extract_nds_banner(&mut input)?.icon,
@@ -109,7 +110,6 @@ fn generate_thumbnail(file_params: ThumbnailerFileParams) -> Result<(), Thumbnai
         RomFormat::N3ds3dsx => SMDHIcon::from_n3dsx(&mut input)?.large_icon,
         RomFormat::N3dsCxi => SMDHIcon::from_cxi(&mut input)?.large_icon,
         RomFormat::N3dsCci => SMDHIcon::from_cci(&mut input)?.large_icon,
-        _ => return Err(ThumbnailerError::IncompatibleRomFormat(rom_format)),
     };
 
     // Whether to skip saving file
