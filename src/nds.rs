@@ -44,28 +44,13 @@ pub fn extract_nds_banner<T: Read + Seek>(f: &mut T) -> Result<NDSBannerDetails,
     Ok(banner_details)
 }
 
-fn extract_palette_colors(palette_raw: &[u8; 0x20]) -> [PaletteColor; 0x20 / 2] {
-    // this unwrap will never fail: there's even length input.
-    let colors_converted = palette_raw.chunks_exact(2).map(|chunk| {
-        let bytes: [u8; 2] = chunk.try_into().unwrap();
-        Rgb888::from(Bgr555::from(bytes))
+fn extract_palette_colors(palette_raw: &[u8; 0x20]) -> [PaletteColor; 16] {
+    let mut palette_colors: [PaletteColor; 16] = std::array::from_fn(|i| {
+        let bytes = [palette_raw[i * 2], palette_raw[i * 2 + 1]];
+        let rgb = Rgb888::from(Bgr555::from(bytes));
+        PaletteColor { r: rgb.r, g: rgb.g, b: rgb.b, a: 0xFF }
     });
-
-    let mut palette_colors: [PaletteColor; 0x20 / 2] = colors_converted
-        .map(|palette_color| PaletteColor {
-            r: palette_color.r,
-            g: palette_color.g,
-            b: palette_color.b,
-            a: 0xFF,
-        })
-        .collect::<Vec<_>>()
-        .try_into()
-        .unwrap();
-    palette_colors[0] = PaletteColor {
-        a: 0x00,
-        ..palette_colors[0]
-    };
-
+    palette_colors[0].a = 0x00;
     palette_colors
 }
 
