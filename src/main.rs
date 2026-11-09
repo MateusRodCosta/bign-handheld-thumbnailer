@@ -4,7 +4,10 @@ mod n3ds;
 mod nds;
 mod utils;
 
-use image::DynamicImage;
+use image::{
+    imageops::{self, FilterType},
+    RgbaImage,
+};
 use n3ds::structures::SMDHIcon;
 use nds::extract_nds_banner;
 use pico_args::Arguments;
@@ -41,6 +44,34 @@ fn show_version() -> Result<(), ThumbnailerError> {
 
     println!("{NAME} v{VERSION}");
     Ok(())
+}
+
+// MRC: Please excuse the use of AI here, previously I was always using Lanczos3 when resizing the icons
+// Since it didn't turn out as good and since it may have been using too musch CPU for not enough benefit,
+// I asked Gemini to determine the best way to resize the game icons by making the best usage of the available filters
+// Assume this would be better than anything I could so myself even if the AI output is flawed
+fn resize_icon(img: RgbaImage, target_size: Option<u32>, format: RomFormat) -> RgbaImage {
+    let Some(size) = target_size else {
+        return img;
+    };
+
+    let width = img.width(); // Icons are always square (32x32 or 48x48)
+    if size == width || size == 0 {
+        return img;
+    }
+
+    let filter = match (format, size) {
+        // NDS is 32x32 pixel art with 1-bit alpha: always use Nearest on integer multiples (64, 128, 256)
+        (RomFormat::Nds, s) if s > width && s % width == 0 => FilterType::Nearest,
+        // Any format at exact 2x size (e.g., 32->64 or 48->96): Nearest keeps crisp edges
+        (_, s) if s == width * 2 => FilterType::Nearest,
+        // Small non-integer scale (up to 2x) or downscaling: simple bilinear filter
+        (_, s) if s <= width * 2 => FilterType::Triangle,
+        // Large scale (> 2x, e.g., 48->128 or 48->256): Bicubic preserves quality without Lanczos ringing
+        _ => FilterType::CatmullRom,
+    };
+
+    imageops::resize(&img, size, size, filter)
 }
 
 fn generate_thumbnail(file_params: ThumbnailerFileParams) -> Result<(), ThumbnailerError> {
@@ -90,13 +121,7 @@ fn generate_thumbnail(file_params: ThumbnailerFileParams) -> Result<(), Thumbnai
         return Ok(());
     };
 
-    // Whether to do optional scaling or save as-is
-    let img = if let Some(size) = file_params.size {
-        DynamicImage::ImageRgba8(img).resize(size, size, image::imageops::FilterType::Lanczos3)
-    } else {
-        DynamicImage::ImageRgba8(img)
-    };
-
+    let img = resize_icon(img, file_params.size, rom_format);
     img.save_with_format(output, image::ImageFormat::Png)?;
     Ok(())
 }
