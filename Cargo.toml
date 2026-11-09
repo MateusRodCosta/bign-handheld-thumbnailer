@@ -16,8 +16,8 @@ publish = false
 
 [dependencies]
 pico-args = "0.5.0"
-thiserror = "2.0.18"
-bitflags = "2.11.0"
+thiserror = "2.0.21"
+bitflags = "2.13.2"
 
 [dependencies.image]
 version = "0.25.10"
