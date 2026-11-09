@@ -24,31 +24,29 @@ pub struct Rgb888 {
 }
 
 impl From<Bgr555> for Rgb888 {
+    #[inline]
     fn from(value: Bgr555) -> Self {
         /*
          * The NDS palette uses BGR555 for color encoding but we need RGB888
          * So, each individual color must be isolated and converted to RGB888
          */
 
-        let color_bytes = value.0;
+        let c = value.0;
 
-        // Conversion code borrowed from
-        // https://learn.microsoft.com/en-us/windows/win32/directshow/working-with-16-bit-rgb
-        // with added swapping between Blue and Red
+        let r5 = (c & 0x001F) as u8;
+        let g5 = ((c >> 5) & 0x001F) as u8;
+        let b5 = ((c >> 10) & 0x001F) as u8;
 
-        let blue_value = u8::try_from((color_bytes & 0x7C00) >> 10).unwrap();
-        let green_value = u8::try_from((color_bytes & 0x03E0) >> 5).unwrap();
-        let red_value = u8::try_from(color_bytes & 0x001F).unwrap();
-
-        let b = blue_value << 3;
-        let g = green_value << 3;
-        let r = red_value << 3;
-
-        Self { r, g, b }
+        Self {
+            r: (r5 << 3) | (r5 >> 2),
+            g: (g5 << 3) | (g5 >> 2),
+            b: (b5 << 3) | (b5 >> 2),
+        }
     }
 }
 
 impl From<Rgb565> for Rgb888 {
+    #[inline]
     fn from(value: Rgb565) -> Self {
         /*
          * The 3DS icon usually uses RGB565 for color encoding, although others are also supported,
@@ -56,19 +54,16 @@ impl From<Rgb565> for Rgb888 {
          * So, each individual color must be isolated and converted to RGB888
          */
 
-        let color_bytes = value.0;
+        let c = value.0;
 
-        // Conversion code borrowed from
-        // https://learn.microsoft.com/en-us/windows/win32/directshow/working-with-16-bit-rgb
+        let r5 = ((c >> 11) & 0x001F) as u8;
+        let g6 = ((c >> 5) & 0x003F) as u8;
+        let b5 = (c & 0x001F) as u8;
 
-        let red_value = u8::try_from((color_bytes & 0xF800) >> 11).unwrap();
-        let green_value = u8::try_from((color_bytes & 0x07E0) >> 5).unwrap();
-        let blue_value = u8::try_from(color_bytes & 0x001F).unwrap();
-
-        let r = red_value << 3;
-        let g = green_value << 2;
-        let b = blue_value << 3;
-
-        Self { r, g, b }
+        Self {
+            r: (r5 << 3) | (r5 >> 2),
+            g: (g6 << 2) | (g6 >> 4),
+            b: (b5 << 3) | (b5 >> 2),
+        }
     }
 }
