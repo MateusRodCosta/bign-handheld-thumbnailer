@@ -9,12 +9,12 @@ use n3ds::structures::SMDHIcon;
 use nds::extract_nds_banner;
 use pico_args::Arguments;
 use std::fs::File;
+use std::io::{Read, Seek};
 use std::process::ExitCode;
 use utils::get_mime_type;
 
 use crate::{
-    args::{ThumbnailerCommand, ThumbnailerFileParams},
-    error::ThumbnailerError,
+    args::{ThumbnailerCommand, ThumbnailerFileParams}, error::ThumbnailerError, utils::RomFormat,
 };
 
 fn main() -> ExitCode {
@@ -62,30 +62,23 @@ fn generate_thumbnail(file_params: ThumbnailerFileParams) -> Result<(), Thumbnai
     // You might want to check https://github.com/citra-emu/citra/blob/master/dist/citra.xml
     // for the Nintendo 3DS-related mime types as defined by the Citra emulator
 
-    let mime_type = get_mime_type(path)?;
     let mut input = File::open(path)?;
 
-    const MIME_TYPE_NDS: &str = "application/x-nintendo-ds-rom";
-    const MIME_TYPE_N3DS_CIA: &str = "application/x-ctr-cia";
-    const MIME_TYPE_N3DS_SMDH: &str = "application/x-ctr-smdh";
-    const MIME_TYPE_N3DS_3DSX: &str = "application/x-ctr-3dsx";
-    const MIME_TYPE_N3DS_3DSX_GENERIC: &str = "application/x-nintendo-3ds-executable";
-    const MIME_TYPE_N3DS_CXI: &str = "application/x-ctr-cxi";
-    const MIME_TYPE_N3DS_CCI: &str = "application/x-ctr-cci";
-    const MIME_TYPE_N3DS_CCI_GENERIC: &str = "application/x-nintendo-3ds-rom";
+    let mut header_bytes = [0u8; 512];
+    input.read_exact(&mut header_bytes)?;
 
-    let img = match &mime_type[..] {
-        MIME_TYPE_NDS => extract_nds_banner(&mut input)?.icon,
-        MIME_TYPE_N3DS_CIA => SMDHIcon::from_cia(&mut input)?.large_icon,
-        MIME_TYPE_N3DS_SMDH => SMDHIcon::from_smdh(&mut input)?.large_icon,
-        MIME_TYPE_N3DS_3DSX | MIME_TYPE_N3DS_3DSX_GENERIC => {
-            SMDHIcon::from_n3dsx(&mut input)?.large_icon
-        }
-        MIME_TYPE_N3DS_CXI => SMDHIcon::from_cxi(&mut input)?.large_icon,
-        MIME_TYPE_N3DS_CCI | MIME_TYPE_N3DS_CCI_GENERIC => {
-            SMDHIcon::from_cci(&mut input)?.large_icon
-        }
-        _ => return Err(ThumbnailerError::IncompatibleMimeType(mime_type)),
+    input.rewind()?;
+
+    let rom_format = get_mime_type(path, &header_bytes)?;
+
+    let img = match rom_format {
+        RomFormat::Nds => extract_nds_banner(&mut input)?.icon,
+        RomFormat::N3dsCia => SMDHIcon::from_cia(&mut input)?.large_icon,
+        RomFormat::N3dsSmdh => SMDHIcon::from_smdh(&mut input)?.large_icon,
+        RomFormat::N3ds3dsx => SMDHIcon::from_n3dsx(&mut input)?.large_icon,
+        RomFormat::N3dsCxi => SMDHIcon::from_cxi(&mut input)?.large_icon,
+        RomFormat::N3dsCci => SMDHIcon::from_cci(&mut input)?.large_icon,
+        _ => return Err(ThumbnailerError::IncompatibleRomFormat(rom_format)),
     };
 
     // Whether to skip saving file

@@ -16,7 +16,6 @@ publish = false
 
 [dependencies]
 pico-args = "0.5.0"
-gio = "0.21.5"
 thiserror = "2.0.18"
 bitflags = "2.11.0"
 
