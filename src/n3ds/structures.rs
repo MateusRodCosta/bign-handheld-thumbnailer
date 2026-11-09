@@ -49,19 +49,8 @@ impl SMDHIcon {
          * Each color will usually be RGB565 although it's not the only supported color enconding
          */
 
-        const LARGE_ICON_SIZE: usize = 48;
-        const LARGE_ICON_WIDTH: usize = LARGE_ICON_SIZE;
-        const LARGE_ICON_HEIGHT: usize = LARGE_ICON_SIZE;
-
-        let large_icon_data: [Rgb888; 0x1200 / 2] = large_icon_bytes
-            .chunks_exact(2)
-            .map(|chunk| {
-                let bytes: [u8; 2] = chunk.try_into().unwrap();
-                Rgb888::from(Rgb565::from(bytes))
-            })
-            .collect::<Vec<_>>()
-            .try_into()
-            .unwrap();
+        const LARGE_ICON_SIZE: u32 = 48;
+        let mut img = RgbaImage::new(LARGE_ICON_SIZE, LARGE_ICON_SIZE);
 
         /*
          * Due to the Morton order, the code for the coordinates of the pixels is oxided from
@@ -69,12 +58,9 @@ impl SMDHIcon {
          * Many thanks to ihaveamac from the Nintendo Homebrew Discord for the help
          */
 
-        #[allow(clippy::cast_possible_truncation)]
-        let mut img = RgbaImage::new(LARGE_ICON_WIDTH as u32, LARGE_ICON_HEIGHT as u32);
-
-        for y in 0..LARGE_ICON_HEIGHT {
-            for x in 0..LARGE_ICON_WIDTH {
-                let pixel_offset = (((y >> 3) * (LARGE_ICON_WIDTH >> 3) + (x >> 3)) << 6)
+        for y in 0..LARGE_ICON_SIZE as usize {
+            for x in 0..LARGE_ICON_SIZE as usize {
+                let morton_index = (((y >> 3) * ((LARGE_ICON_SIZE as usize) >> 3) + (x >> 3)) << 6)
                     + ((x & 1)
                         | ((y & 1) << 1)
                         | ((x & 2) << 1)
@@ -82,8 +68,10 @@ impl SMDHIcon {
                         | ((x & 4) << 2)
                         | ((y & 4) << 3));
 
-                let pixel = &large_icon_data[pixel_offset];
-                #[allow(clippy::cast_possible_truncation)]
+                let byte_offset = morton_index * 2;
+                let raw_pixel = [large_icon_bytes[byte_offset], large_icon_bytes[byte_offset + 1]];
+                let pixel = Rgb888::from(Rgb565::from(raw_pixel));
+
                 img.put_pixel(x as u32, y as u32, Rgba([pixel.r, pixel.g, pixel.b, 0xFF]));
             }
         }
